@@ -9,8 +9,11 @@
 const Chat = (() => {
   const KEY = C.geminiKey, MODEL = C.geminiModelo || 'gemini-3.5-flash-lite';
   const EJEMPLO = 'Necesito 300 polos camiseros bordados para mi empresa';
-  const blank = () => ({ qid: 'chat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), producto: null, cantidad: null, personalizacion: null, tallas: {}, color: '', nombre: '', empresa: '', telefono: '', notas: '' });
-  let productos = [], draft = blank(), history = [], busy = false, est = null, estFor = '', registrado = null, logo = null, resumenEl = null;
+  // Zonas donde puede ir el logo: las mismas que ofrece el editor 3D.
+  const ZONAS = ['Pecho izquierdo', 'Pecho derecho', 'Centro del pecho', 'Manga', 'Espalda'];
+  const llevaLogo = () => ['bordado', 'dtf', 'bordado_dtf'].includes(draft.personalizacion);
+  const blank = () => ({ qid: 'chat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), producto: null, cantidad: null, personalizacion: null, tallas: {}, color: '', ubicacion: '', nombre: '', empresa: '', telefono: '', notas: '' });
+  let productos = [], draft = blank(), history = [], busy = false, est = null, estFor = '', registrado = null, logo = null, resumenEl = null, zonaEl = null;
 
   const box = () => $('assistantMessages');
   const prod = id => productos.find(p => p.id === id) || null;
@@ -45,7 +48,7 @@ CAMBIOS DESPUÉS DE REGISTRAR
 DATOS QUE NECESITAS
 1. Prenda (usa el id de la lista). 2. Cantidad (respeta el mínimo). 3. Personalización (una de las permitidas para esa prenda). 4. Tallas: ${C.tallas.join(', ')}; deben sumar exactamente la cantidad. Si el cliente no sabe, propón una distribución razonable y pídele que la confirme. 5. Nombre de contacto y teléfono. Empresa y color son opcionales.
 - El polo camisero tiene editor 3D: si el cliente quiere ver su diseño, dile que use el botón «Diseñar en 3D».
-- Puede adjuntar su logo con el botón «+».
+- Si la prenda lleva bordado o DTF, pídele que adjunte su logo con el botón «+» y pregúntale en qué zona lo quiere. Ofrece estas opciones: ${ZONAS.join(', ')}. Guarda la elegida en «ubicacion». También puede tocar una de las opciones que aparecen en pantalla.
 - Cuando no falte nada, resume y dile que revise la tarjeta y pulse «Registrar solicitud».
 
 LISTA DE PRENDAS (id | nombre | línea | mínimo | personalizaciones | precio)
@@ -63,13 +66,14 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
   const SCHEMA = () => ({
     // Primero los datos y al final la respuesta: así el modelo extrae antes de redactar.
     type: 'OBJECT', required: ['producto', 'cantidad', 'personalizacion', 'respuesta'],
-    propertyOrdering: ['producto', 'cantidad', 'personalizacion', 'tallas', 'color', 'nombre', 'empresa', 'telefono', 'notas', 'respuesta'],
+    propertyOrdering: ['producto', 'cantidad', 'personalizacion', 'tallas', 'color', 'ubicacion', 'nombre', 'empresa', 'telefono', 'notas', 'respuesta'],
     properties: {
       respuesta: { type: 'STRING' },
       producto: { type: 'STRING', enum: productos.map(p => p.id), nullable: true },
       cantidad: { type: 'INTEGER', nullable: true },
       personalizacion: { type: 'STRING', enum: Object.keys(C.personalizaciones), nullable: true },
       tallas: { type: 'OBJECT', nullable: true, properties: Object.fromEntries(C.tallas.map(t => [t, { type: 'INTEGER', nullable: true }])) },
+      ubicacion: { type: 'STRING', enum: ZONAS, nullable: true },
       color: { type: 'STRING', nullable: true }, nombre: { type: 'STRING', nullable: true }, empresa: { type: 'STRING', nullable: true },
       telefono: { type: 'STRING', nullable: true }, notas: { type: 'STRING', nullable: true }
     }
@@ -96,6 +100,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     const p = prod(draft.producto);
     if (o.personalizacion && (!p || p.personalizaciones.includes(o.personalizacion))) draft.personalizacion = o.personalizacion;
     if (o.tallas && typeof o.tallas === 'object') { const t = {}; for (const k of C.tallas) { const n = Number(o.tallas[k]); if (Number.isInteger(n) && n > 0) t[k] = n } if (Object.keys(t).length) draft.tallas = t }
+    if (ZONAS.includes(o.ubicacion)) draft.ubicacion = o.ubicacion;
     for (const k of ['color', 'nombre', 'empresa', 'notas']) if (typeof o[k] === 'string' && o[k].trim()) draft[k] = o[k].trim().slice(0, 200);
     if (typeof o.telefono === 'string' && o.telefono.replace(/\D/g, '').length >= 6) draft.telefono = o.telefono.trim().slice(0, 30);
   }
@@ -105,6 +110,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     for (const m of t.matchAll(/(\d{1,5})\s*(?:de\s+)?(?:talla\s+)?(XXL|XL|XS|S|M|L)(?![a-z])/gi)) tallas[m[2].toUpperCase()] = Number(m[1]);
     if (Object.keys(tallas).length) o.tallas = tallas;
     const c = t.match(/(\d{1,6})\s+(?!talla)[a-záéíóúñ]{4,}/i); if (c && !draft.cantidad) o.cantidad = Number(c[1]);
+    const z = ZONAS.find(x => t.toLowerCase().includes(x.toLowerCase())); if (z) o.ubicacion = z;
     if (/bordad/i.test(t) && /dtf|estampad/i.test(t)) o.personalizacion = 'bordado_dtf'; else if (/bordad/i.test(t)) o.personalizacion = 'bordado'; else if (/sublim/i.test(t)) o.personalizacion = 'sublimado'; else if (/dtf|estampad/i.test(t)) o.personalizacion = 'dtf'; else if (/sin (logo|personaliz|estampad|bordad)/i.test(t)) o.personalizacion = 'ninguna';
     const tel = t.match(/(?:\+?51\s*)?(9\d{2}[\s-]?\d{3}[\s-]?\d{3})/); if (tel) o.telefono = tel[1].replace(/[\s-]/g, '');
     return o;
@@ -115,6 +121,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     if (!draft.cantidad) f.push('cantidad'); else if (p && draft.cantidad < p.minimo) f.push(`cantidad (el mínimo de ${p.nombre} es ${p.minimo})`);
     if (!draft.personalizacion) f.push('personalización');
     if (draft.cantidad && sumTallas(draft.tallas) !== draft.cantidad) f.push(`tallas (suman ${sumTallas(draft.tallas)} y deben sumar ${draft.cantidad})`);
+    if (llevaLogo() && !draft.ubicacion) f.push('zona del logo');
     if (!draft.nombre) f.push('nombre de contacto'); if (!draft.telefono) f.push('teléfono');
     return f;
   }
@@ -131,6 +138,13 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       card(`<b>Entrega estimada por la planta</b><span class="big">${esc(fmtDate(est.fecha_estimada, true))}</span><span>${est.dias_habiles} días hábiles, según la carga real de hoy. Ventas confirma la fecha en firme.</span>${u ? `<span>Precio estimado: <b>${money(u * draft.cantidad)}</b> (${money(u)} por prenda)</span>` : '<span>Precio: lo confirma ventas.</span>'}`, 'est');
     } catch (e) { est = null; estFor = ''; card(`<b>No pude consultar la planta</b><span>${esc(e.message)} No te doy una fecha sin verificarla.</span>`, 'err') }
   }
+  // Opciones para elegir dónde va el logo: se muestran cuando la prenda lo lleva y todavía no se eligió.
+  function zonas() {
+    if (zonaEl) { zonaEl.remove(); zonaEl = null }
+    if (registrado || !prod(draft.producto) || !llevaLogo() || draft.ubicacion) return;
+    zonaEl = card(`<b>¿En qué zona quieres el logo?</b><div class="acts">${ZONAS.map(z => `<button type="button" class="btn btn-light btn-sm" data-chat="zona" data-zona="${esc(z)}">${esc(z)}</button>`).join('')}</div><span>${logo ? `Logo adjunto: ${esc(logo.name)}` : 'Adjunta tu logo con el botón «+».'}</span>`);
+  }
+  function elegirZona(z) { draft.ubicacion = z; addMsg(z, true); history.push({ role: 'user', parts: [{ text: `Quiero el logo en: ${z}.` }] }); zonas(); resumen(); if (!faltantes().length) addMsg('Listo. Revisa la tarjeta y pulsa «Registrar solicitud».') }
   function resumen() {
     if (resumenEl) { resumenEl.remove(); resumenEl = null }
     if (registrado) return;
@@ -143,7 +157,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       <span>Tallas: ${esc(tallasText(draft.tallas))}</span>${draft.color ? `<span>Color: ${esc(draft.color)}</span>` : ''}
       <span>Contacto: ${esc(draft.nombre)}${draft.empresa ? ' · ' + esc(draft.empresa) : ''} · ${esc(draft.telefono)}</span>
       <span>Entrega estimada: <b>${esc(fmtDate(est.fecha_estimada))}</b>${u ? ` · Total estimado: <b>${money(u * draft.cantidad)}</b>` : ''}</span>
-      ${logo ? `<span>Logo adjunto: ${esc(logo.name)}</span>` : ''}
+      ${draft.ubicacion ? `<span>Logo en: ${esc(draft.ubicacion)}${logo ? ` · ${esc(logo.name)}` : ' · sin archivo adjunto'}</span>` : logo ? `<span>Logo adjunto: ${esc(logo.name)}</span>` : ''}
       <div class="acts"><button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>${(C.catalogo[p.id] || {}).editor3d ? '<button type="button" class="btn btn-light btn-sm" data-chat="3d">Diseñar en 3D</button>' : ''}</div>`, 'sum');
   }
 
@@ -152,7 +166,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     const u = precio(o.item.producto);
     return ['*REPORTE DE SOLICITUD — CORPOTEX*', `Código de solicitud: ${o.id}`, `Fecha de registro: ${fmtDateTime(o.createdAt)}`, 'Canal: asistente de la página web',
       ...reportBlock('DATOS DEL CLIENTE', [['Nombre', o.cliente.nombre], ['Empresa u organización', o.cliente.empresa], ['Teléfono', o.cliente.telefono]]),
-      ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', o.item.nombre], ['Personalización', persLabel(o.item.personalizacion)], ['Cantidad', `${o.item.cantidad} uds. (${tallasText(o.item.tallas)})`], ['Color', o.item.color], ['Precio base estimado', u ? `${money(u)} / prenda` : ''], ['Precio total estimado', u ? money(u * o.item.cantidad) : ''], ['Fecha estimada de entrega', `${fmtDate(o.fechaEstimada)} (${o.diasHabiles} días hábiles), estimada por la planta; ventas confirma la fecha en firme`], ['Observaciones', o.notasCliente], ['Logo', o.intranet.disenoSubido && 'adjunto a la cotización en el sistema de Corpotex']]),
+      ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', o.item.nombre], ['Personalización', persLabel(o.item.personalizacion)], ['Cantidad', `${o.item.cantidad} uds. (${tallasText(o.item.tallas)})`], ['Color', o.item.color], ['Ubicación del logo', o.ubicacionLogo], ['Precio base estimado', u ? `${money(u)} / prenda` : ''], ['Precio total estimado', u ? money(u * o.item.cantidad) : ''], ['Fecha estimada de entrega', `${fmtDate(o.fechaEstimada)} (${o.diasHabiles} días hábiles), estimada por la planta; ventas confirma la fecha en firme`], ['Observaciones', o.notasCliente], ['Logo', o.intranet.disenoSubido && 'adjunto a la cotización en el sistema de Corpotex']]),
       '', '*ESTADO*', '• Solicitud registrada correctamente en el sistema de Corpotex.', `• Estado actual: ${ORDER_STATE_TXT}`].join('\n');
   }
 
@@ -162,13 +176,13 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     const fail = m => { busy = false; btn.disabled = false; btn.textContent = 'Registrar solicitud'; card(`<b>No se registró</b><span>${esc(m)}</span>`, 'err') };
     try { est = await Intranet.estimar(itemEst()); estFor = JSON.stringify(itemEst()) } catch (e) { return fail('No pude verificar la fecha con la planta. ' + e.message) }
     const p = prod(draft.producto), u = precio(p.id), cliente = { nombre: draft.nombre, telefono: draft.telefono }; if (draft.empresa) cliente.empresa = draft.empresa;
-    const item = { producto: p.id, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, notas: ['Solicitud hecha con el asistente de la web.', draft.notas].filter(Boolean).join(' ') }; if (draft.color) item.color = draft.color;
+    const item = { producto: p.id, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, notas: ['Solicitud hecha con el asistente de la web.', draft.ubicacion && `Logo en: ${draft.ubicacion}.`, draft.notas].filter(Boolean).join(' ') }; if (draft.color) item.color = draft.color;
     const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada, origen: 'chatbot', marca: 'CORPOTEX', clave_idempotencia: draft.qid }; if (u) payload.precio_total = Math.round(u * draft.cantidad * 100) / 100;
     let res;
     try { btn.textContent = 'Registrando…'; res = await Intranet.crearCotizacion(payload) } catch (e) { return fail(e.message) }
     if (!res || !res.codigo) return fail('El sistema de Corpotex no devolvió un código.');
     const now = new Date().toISOString();
-    const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', canal: 'chatbot', intranet: { codigo: res.codigo, clave: res.clave || null, disenoSubido: null }, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, item: { producto: p.id, nombre: p.nombre, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, color: draft.color }, estilo: null, fechaDeseada: '', fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: draft.notas, no3D: false, design: null, revision: null, modificaciones: [] };
+    const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', canal: 'chatbot', intranet: { codigo: res.codigo, clave: res.clave || null, disenoSubido: null }, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, item: { producto: p.id, nombre: p.nombre, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, color: draft.color }, estilo: null, fechaDeseada: '', fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: draft.notas, ubicacionLogo: draft.ubicacion, no3D: false, design: null, revision: null, modificaciones: [] };
     if (logo) { try { await Intranet.subirDiseno(res.codigo, logo, logo.name); order.intranet.disenoSubido = true; order.intranet.archivo = logo.name } catch (e) { order.intranet.disenoSubido = false; order.intranet.disenoError = e.message } }
     Store.add(order); registrado = res.codigo; busy = false; if (resumenEl) { resumenEl.remove(); resumenEl = null }
     card(`<b>Solicitud registrada</b><span class="big">${esc(res.codigo)}</span><span>Envía este código a ventas por WhatsApp. Ventas confirma el pedido y el pago; recién entonces entra a producción.</span>${order.intranet.disenoSubido === false ? '<span>Tu logo no se pudo adjuntar; envíalo por WhatsApp.</span>' : ''}
@@ -197,14 +211,14 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       // Lo leído directo del mensaje manda sobre lo que interprete el modelo.
       if (!registrado) { merge(out); merge(directo) }
       addMsg(out.respuesta);
-      if (!registrado) { await refreshEstimate(); resumen() }
+      if (!registrado) { await refreshEstimate(); zonas(); resumen() }
     } catch (e) {
       espera.remove(); history.pop();
       addMsg(`No pude responder con el asistente (${e.name === 'AbortError' ? 'tardó demasiado' : e.message}). ${answer(t)}`);
     } finally { busy = false }
   }
 
-  function nueva() { draft = blank(); history = []; est = null; estFor = ''; registrado = null; logo = null; resumenEl = null; box().innerHTML = ''; saludo() }
+  function nueva() { draft = blank(); history = []; est = null; estFor = ''; registrado = null; logo = null; resumenEl = null; zonaEl = null; box().innerHTML = ''; saludo() }
   function saludo() {
     const b = document.createElement('div'); b.className = 'amvp';
     b.innerHTML = `<b>MODO MVP</b> Pruébalo con: <button type="button" data-chat="ejemplo">«${esc(EJEMPLO)}»</button><span>El diseño 3D solo está en el polo camisero.</span>`;
@@ -221,12 +235,12 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       const file = e.target.files[0]; e.target.value = ''; if (!file) return;
       if (!C.revision.formatos.includes(file.type)) return toast('El logo debe ser PNG, JPG o WEBP.');
       if (file.size > C.revision.maxMb * 1024 * 1024) return toast(`El logo no puede pesar más de ${C.revision.maxMb} MB.`);
-      logo = file; card(`<span>Logo adjunto: <b>${esc(file.name)}</b>. Se enviará a Corpotex al registrar la solicitud.</span>`); if (!registrado && history.length) resumen();
+      logo = file; card(`<span>Logo adjunto: <b>${esc(file.name)}</b>. Se enviará a Corpotex al registrar la solicitud.</span>`); if (!registrado && history.length) { zonas(); resumen() }
     };
     f.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; enviar(t) };
     box().addEventListener('click', e => {
       const b = e.target.closest('[data-chat]'); if (!b) return; const a = b.dataset.chat;
-      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === '3d') abrir3D();
+      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === 'zona') elegirZona(b.dataset.zona); else if (a === '3d') abrir3D();
       else if (a === 'ver') { toggleAssistant(false); nav('solicitudes/' + b.dataset.code) } else if (a === 'nueva') nueva();
     });
     box().innerHTML = ''; saludo();

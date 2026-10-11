@@ -40,6 +40,11 @@ const Intranet = (() => {
     const fd = new FormData(); fd.append('archivo', blob, nombre);
     return request(`/api/cotizaciones/${encodeURIComponent(codigo)}/diseno`, { method: 'POST', body: fd });
   }
+  // Imagen de una vista del modelo (frente, media-lateral, lateral o espalda): la ven ventas y cada área de la planta.
+  async function subirVista(codigo, blob, vista) {
+    const fd = new FormData(); fd.append('archivo', blob, `vista-${vista}.jpg`); fd.append('vista', vista);
+    return request(`/api/cotizaciones/${encodeURIComponent(codigo)}/diseno`, { method: 'POST', body: fd });
+  }
   // Etapa de fabricación de una cotización: { estado, etapa, precio_confirmado, fecha_comprometida, cambios }.
   async function estadoCotizacion(codigo, clave) {
     // Sin la clave que se entregó al registrar no se puede consultar (solicitudes anteriores a ese cambio).
@@ -49,5 +54,5 @@ const Intranet = (() => {
       return { disponible: true, etapa: d.etapa || d.estado || null, precio: Number(d.precio_confirmado) || null, raw: d };
     } catch (e) { return { disponible: false, error: e }; }
   }
-  return { productos, estimar, crearCotizacion, subirDiseno, estadoCotizacion, IntranetError, base };
+  return { productos, estimar, crearCotizacion, subirDiseno, subirVista, estadoCotizacion, IntranetError, base };
 })();

@@ -429,6 +429,19 @@ async function uploadDesign(order) {
   const file = await buildDesignFile(order, designLogo, reviewFiles); if (!file) return { ok: null };
   try { await Intranet.subirDiseno(order.id, file.blob, file.name); return { ok: true, name: file.name } } catch (e) { return { ok: false, error: e.message } }
 }
+// Vistas del modelo 3D (frente, media lateral y espalda) como imágenes: ventas las ve al cargar el código y cada
+// área de la planta con el botón «Ver modelo». Si el editor ya no tiene las vistas, se usan las miniaturas guardadas.
+async function uploadViews(order) {
+  const v = order.design && order.design.versions[0]; if (!v) return 0;
+  const views = [];
+  try {
+    if (Designer.viewsReady()) for (const k of ['f', 'q', 'b']) views.push([Designer.VIEWS[k].file, (await Designer.viewJPEG(k, 900)).data]);
+    else for (const [k, f] of [['f', 'frente'], ['b', 'espalda']]) if (v.previews && v.previews[k]) views.push([f, v.previews[k]]);
+  } catch (e) { console.warn('No se pudieron preparar las vistas del modelo', e) }
+  let n = 0;
+  for (const [vista, data] of views) { try { await Intranet.subirVista(order.id, await dataUrlToBlob(data), vista); n++ } catch (e) { console.warn('No se pudo subir la vista', vista, e) } }
+  return n;
+}
 function openPlaceholder() { try { const w = window.open('', '_blank'); if (!w) return null; w.opener = null; w.document.write('<!doctype html><meta charset="utf-8"><title>Corpotex</title><p style="font:16px system-ui;padding:24px;color:#0d2547">Registrando tu solicitud en Corpotex… Cuando quede registrada se abrirá WhatsApp con el reporte de tu pedido.</p>'); return w } catch (e) { return null } }
 async function persistDesignRequest(type, payload) {
   try {
@@ -501,7 +514,8 @@ async function saveQuote() {
   if (designLogo) Store.putFile(`${res.codigo}:v1:logo`, designLogo).catch(() => {});
   reviewFiles.forEach((f, i) => Store.putFile(`${res.codigo}:ref:${i}`, f).catch(() => {}));
   btn.textContent = 'Adjuntando tu diseño…';
-  const up = await uploadDesign(order); Store.update(order, o => { o.intranet.disenoSubido = up.ok; o.intranet.archivo = up.name || null; if (up.ok === false) o.intranet.disenoError = up.error });
+  const vistas = await uploadViews(order);
+  const up = await uploadDesign(order); Store.update(order, o => { o.intranet.vistas = vistas; o.intranet.disenoSubido = up.ok; o.intranet.archivo = up.name || null; if (up.ok === false) o.intranet.disenoError = up.error });
   // WhatsApp solo se abre aquí, con el registro ya confirmado por el sistema interno y el reporte de la solicitud.
   let opened = false;
   if (waWin && !waWin.closed) { try { waWin.location.href = waLink(orderReport(order)); opened = true } catch (e) {} }
