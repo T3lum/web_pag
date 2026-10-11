@@ -179,7 +179,11 @@ app.get('/js/config.local.js', (req, res, next) => {
   return res.send(`window.CORPOTEX_CONFIG.geminiKey = ${JSON.stringify(process.env.GEMINI_KEY)};\n`);
 });
 
-app.use(express.static(rootDir, { index: false }));
+// Solo se publican las carpetas de la página. Servir la raíz completa dejaba a la vista data/ (las
+// solicitudes de los clientes y el usuario del diseñador), el código del servidor y los documentos.
+for (const carpeta of ['assets', 'css', 'js']) {
+  app.use(`/${carpeta}`, express.static(path.join(rootDir, carpeta), { index: false }));
+}
 
 app.get('/designer', (req, res) => {
   res.sendFile(path.join(rootDir, 'designer.html'));
