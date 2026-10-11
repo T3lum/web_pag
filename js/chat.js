@@ -186,12 +186,63 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       <div class="acts">${tiene3D() ? '<button type="button" class="btn btn-dark btn-sm" data-chat="3d">Ver mi polo en 3D</button><button type="button" class="btn btn-light btn-sm" data-chat="registrar">Registrar sin 3D</button>' : '<button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>'}</div>`, 'sum');
   }
 
+  /* ---------- Maqueta del modelo cuando no se pasa por el editor 3D ----------
+     Las vistas 3D solo existen si la persona abre el editor. Para que ventas y la planta siempre reciban una imagen
+     del modelo, aquí se dibuja una maqueta plana: el polo en el color pedido, con el logo en la zona elegida.
+     Para las demás prendas se usa la foto del catálogo como referencia. */
+  const ZONA_2D = { 'Pecho izquierdo': ['f', .635, .345, .15, .1], 'Pecho derecho': ['f', .365, .345, .15, .1], 'Centro del pecho': ['f', .5, .5, .36, .2], 'Manga': ['f', .835, .3, .1, .07], 'Espalda': ['b', .5, .42, .42, .26] };
+  const hexDe = nombre => Object.keys(COLOR_NAMES).find(k => COLOR_NAMES[k].toLowerCase() === String(nombre || '').trim().toLowerCase()) || '#ffffff';
+  const cargarImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src });
+  function pie(g, W, H, texto) { g.fillStyle = '#0d2547'; g.fillRect(0, H - 44, W, 44); g.fillStyle = '#fff'; g.font = '600 15px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(texto, W / 2, H - 22, W - 20) }
+  function dibujarPolo(g, W, H, color, frente) {
+    const x = v => v * W, y = v => v * H, oscuro = /^#(f|e|d|c)/i.test(color) ? 'rgba(20,30,45,.45)' : 'rgba(0,0,0,.45)';
+    g.fillStyle = '#f3f4f8'; g.fillRect(0, 0, W, H); g.lineJoin = 'round'; g.lineWidth = 2.5; g.strokeStyle = oscuro; g.fillStyle = color;
+    // Cuerpo y mangas.
+    g.beginPath(); g.moveTo(x(.395), y(.16)); g.lineTo(x(.25), y(.195)); g.lineTo(x(.085), y(.33)); g.lineTo(x(.175), y(.415)); g.lineTo(x(.29), y(.345)); g.lineTo(x(.29), y(.88));
+    g.lineTo(x(.71), y(.88)); g.lineTo(x(.71), y(.345)); g.lineTo(x(.825), y(.415)); g.lineTo(x(.915), y(.33)); g.lineTo(x(.75), y(.195)); g.lineTo(x(.605), y(.16));
+    g.quadraticCurveTo(x(.5), y(frente ? .23 : .19), x(.395), y(.16)); g.closePath(); g.fill(); g.stroke();
+    // Costuras de las mangas y dobladillo.
+    g.lineWidth = 1.5; g.beginPath(); g.moveTo(x(.25), y(.195)); g.lineTo(x(.29), y(.345)); g.moveTo(x(.75), y(.195)); g.lineTo(x(.71), y(.345)); g.moveTo(x(.29), y(.86)); g.lineTo(x(.71), y(.86)); g.stroke(); g.lineWidth = 2.5;
+    if (frente) {
+      // Cuello camisero y tapeta con 2 botones.
+      for (const s of [1, -1]) { const c = v => x(.5 + s * v); g.beginPath(); g.moveTo(c(.105), y(.16)); g.lineTo(c(.012), y(.215)); g.lineTo(c(.06), y(.285)); g.lineTo(c(.135), y(.2)); g.closePath(); g.fill(); g.stroke() }
+      g.beginPath(); g.rect(x(.478), y(.215), x(.044), y(.17)); g.fill(); g.stroke();
+      g.fillStyle = '#fff'; for (const b of [.26, .33]) { g.beginPath(); g.arc(x(.5), y(b), 4, 0, 7); g.fill(); g.stroke() } g.fillStyle = color;
+    } else { g.beginPath(); g.moveTo(x(.395), y(.16)); g.quadraticCurveTo(x(.5), y(.13), x(.605), y(.16)); g.quadraticCurveTo(x(.5), y(.2), x(.395), y(.16)); g.closePath(); g.fill(); g.stroke() }
+  }
+  async function ponerLogo(g, W, H, z, img) {
+    const [, cx, cy, w, h] = z, bw = w * W, bh = h * H;
+    if (img) { const k = Math.min(bw / img.naturalWidth, bh / img.naturalHeight), iw = img.naturalWidth * k, ih = img.naturalHeight * k; g.drawImage(img, cx * W - iw / 2, cy * H - ih / 2, iw, ih); return }
+    g.save(); g.setLineDash([6, 4]); g.lineWidth = 2; g.strokeStyle = '#f5b301'; g.strokeRect(cx * W - bw / 2, cy * H - bh / 2, bw, bh); g.fillStyle = '#f5b301'; g.font = '700 13px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('LOGO', cx * W, cy * H); g.restore();
+  }
+  const aBlob = c => new Promise(res => c.toBlob(res, 'image/jpeg', .9));
+  // Devuelve las vistas listas para subir: [{ vista, blob, url }]. Nunca lanza: sin maqueta, el pedido igual se registra.
+  async function maqueta() {
+    const p = prod(draft.producto), W = 480, H = 600, out = []; if (!p) return out;
+    try {
+      const img = logo ? await cargarImg(URL.createObjectURL(logo)).catch(() => null) : null, z = llevaLogo() ? ZONA_2D[draft.ubicacion] : null, color = hexDe(draft.color);
+      const lienzo = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c };
+      const detalle = [p.nombre, draft.color || 'color por confirmar', z ? 'logo: ' + draft.ubicacion.toLowerCase() : ''].filter(Boolean).join(' · ');
+      if (isPolo(p)) {
+        for (const [k, vista, rot] of [['f', 'frente', 'Frente'], ['b', 'espalda', 'Espalda']]) {
+          const c = lienzo(), g = c.getContext('2d'); dibujarPolo(g, W, H - 44, color, k === 'f'); if (z && z[0] === k) await ponerLogo(g, W, H - 44, z, img);
+          pie(g, W, H, `Maqueta de referencia · ${rot} · ${detalle}`); out.push({ vista, blob: await aBlob(c), url: c.toDataURL('image/jpeg', .8) });
+        }
+      } else if ((C.catalogo[p.id] || {}).fotos) {
+        const foto = await cargarImg(ASSET + C.catalogo[p.id].fotos[0]), c = lienzo(), g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+        const k = Math.min(W / foto.naturalWidth, (H - 44) / foto.naturalHeight), iw = foto.naturalWidth * k, ih = foto.naturalHeight * k; g.drawImage(foto, (W - iw) / 2, (H - 44 - ih) / 2, iw, ih);
+        pie(g, W, H, `Foto de catálogo · ${detalle}`); out.push({ vista: 'frente', blob: await aBlob(c), url: c.toDataURL('image/jpeg', .8) });
+      }
+    } catch (e) { console.warn('No se pudo preparar la maqueta del modelo', e) }
+    return out;
+  }
+
   // Reporte para WhatsApp de ventas, con el mismo formato que el del formulario.
   function reporte(o) {
     const u = precio(o.item.producto);
     return ['*REPORTE DE SOLICITUD — CORPOTEX*', `Código de solicitud: ${o.id}`, `Fecha de registro: ${fmtDateTime(o.createdAt)}`, 'Canal: asistente de la página web',
       ...reportBlock('DATOS DEL CLIENTE', [['Nombre', o.cliente.nombre], ['Empresa u organización', o.cliente.empresa], ['Teléfono', o.cliente.telefono]]),
-      ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', o.item.nombre], ['Personalización', persLabel(o.item.personalizacion)], ['Cantidad', `${o.item.cantidad} uds. (${tallasText(o.item.tallas)})`], ['Color', o.item.color], ['Ubicación del logo', o.ubicacionLogo], ['Precio base estimado', u ? `${money(u)} / prenda` : ''], ['Precio total estimado', u ? money(u * o.item.cantidad) : ''], ['Fecha estimada de entrega', `${fmtDate(o.fechaEstimada)} (${o.diasHabiles} días hábiles), estimada por la planta; ventas confirma la fecha en firme`], ['Observaciones', o.notasCliente], ['Logo', o.intranet.disenoSubido && 'adjunto a la cotización en el sistema de Corpotex']]),
+      ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', o.item.nombre], ['Personalización', persLabel(o.item.personalizacion)], ['Cantidad', `${o.item.cantidad} uds. (${tallasText(o.item.tallas)})`], ['Color', o.item.color], ['Ubicación del logo', o.ubicacionLogo], ['Precio base estimado', u ? `${money(u)} / prenda` : ''], ['Precio total estimado', u ? money(u * o.item.cantidad) : ''], ['Fecha estimada de entrega', `${fmtDate(o.fechaEstimada)} (${o.diasHabiles} días hábiles), estimada por la planta; ventas confirma la fecha en firme`], ['Observaciones', o.notasCliente], ['Logo', o.intranet.disenoSubido && 'adjunto a la cotización en el sistema de Corpotex'], ['Modelo', o.intranet.vistas ? 'maqueta de referencia adjunta a la cotización' : '']]),
       '', '*ESTADO*', '• Solicitud registrada correctamente en el sistema de Corpotex.', `• Estado actual: ${ORDER_STATE_TXT}`].join('\n');
   }
 
@@ -208,9 +259,13 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     if (!res || !res.codigo) return fail('El sistema de Corpotex no devolvió un código.');
     const now = new Date().toISOString();
     const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', canal: 'chatbot', intranet: { codigo: res.codigo, clave: res.clave || null, disenoSubido: null }, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, item: { producto: p.id, nombre: p.nombre, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, color: draft.color }, estilo: null, fechaDeseada: '', fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: draft.notas, ubicacionLogo: draft.ubicacion, no3D: false, design: null, revision: null, modificaciones: [] };
+    btn.textContent = 'Enviando el modelo…';
+    const vistas = await maqueta(); let subidas = 0;
+    for (const v of vistas) { try { await Intranet.subirVista(res.codigo, v.blob, v.vista); subidas++ } catch (e) { console.warn('No se pudo subir la vista', v.vista, e) } }
+    order.intranet.vistas = subidas;
     if (logo) { try { await Intranet.subirDiseno(res.codigo, logo, logo.name); order.intranet.disenoSubido = true; order.intranet.archivo = logo.name } catch (e) { order.intranet.disenoSubido = false; order.intranet.disenoError = e.message } }
     Store.add(order); registrado = res.codigo; busy = false; if (resumenEl) { resumenEl.remove(); resumenEl = null }
-    card(`<b>Solicitud registrada</b><span class="big">${esc(res.codigo)}</span><span>Envía este código a ventas por WhatsApp. Ventas confirma el pedido y el pago; recién entonces entra a producción.</span>${order.intranet.disenoSubido === false ? '<span>Tu logo no se pudo adjuntar; envíalo por WhatsApp.</span>' : ''}
+    card(`<b>Solicitud registrada</b><span class="big">${esc(res.codigo)}</span><span>Envía este código a ventas por WhatsApp. Ventas confirma el pedido y el pago; recién entonces entra a producción.</span>${order.intranet.disenoSubido === false ? '<span>Tu logo no se pudo adjuntar; envíalo por WhatsApp.</span>' : ''}${subidas ? `<div class="amaq">${vistas.map(v => `<img src="${v.url}" alt="Maqueta, ${esc(v.vista)}"/>`).join('')}</div><span>Esta maqueta ya la tienen ventas y la planta.</span>` : ''}
       <div class="acts"><a class="btn btn-dark btn-sm" target="_blank" rel="noopener" href="${esc(waLink(reporte(order)))}">Enviar por WhatsApp</a><button type="button" class="btn btn-light btn-sm" data-chat="ver" data-code="${esc(res.codigo)}">Ver mi solicitud</button><button type="button" class="btn btn-light btn-sm" data-chat="nueva">Nueva solicitud</button></div>`, 'ok');
     history.push({ role: 'user', parts: [{ text: `[Sistema] La solicitud quedó registrada con el código ${res.codigo}.` }] });
   }
