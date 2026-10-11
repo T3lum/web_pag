@@ -316,3 +316,25 @@ curl -X POST https://sistemainterno-production.up.railway.app/api/estimar \
 - `/api/estimar` no guarda nada: pueden llamarlo todas las veces que quieran.
 - `/api/cotizaciones` **sí guarda** en la base real. Para pruebas usen el teléfono `PRUEBA` en `cliente.telefono`, así se pueden ubicar y borrar.
 - Mientras la planta tenga pedidos de demostración, los plazos salen más largos que los de la sección 13.
+
+## 15. Cambios del 2026-10-11
+
+- `POST /api/estimar` ignora `urgente` y `hay_tela`. Responde solo `fecha_estimada`, `dias_habiles` y `detalle`.
+- `POST /api/cotizaciones` acepta además, todos opcionales: `precio_total` (número), `fecha_deseada` (AAAA-MM-DD; se rechaza con 400 si es domingo o anterior a lo que la planta puede cumplir), `clave_idempotencia` (texto; si se repite, devuelve la misma cotización), `origen` (`web` o `chatbot`), `marca` y `campana`.
+- `POST /api/cotizaciones` responde `{ "codigo": "COT-1234", "clave": "…" }`. La clave hay que guardarla: es la que permite consultar la cotización.
+- Nuevo `GET /api/cotizaciones/{codigo}?clave=…`:
+
+```json
+{
+  "codigo": "COT-1234",
+  "estado": "confirmada",
+  "etapa": "Confección",
+  "fecha_estimada": "2026-10-22",
+  "fecha_comprometida": "2026-10-24",
+  "precio_confirmado": 14400,
+  "cambios": { "sencillo": true, "detallado": false }
+}
+```
+
+  `estado` es `registrada` mientras ventas no la confirma (entonces `etapa` es `null`) y `confirmada` después. `etapa` es la del bloque más atrasado: Almacén, Sublimado, Corte, Confección, Bordado, DTF, Acabados, Listo o Entregado. Sin clave, o con una clave equivocada, responde 404.
+- Regla de cambios: sencillo (texto o tipografía del logo) mientras ningún bloque haya llegado a Bordado, DTF o Sublimado; detallado (cuello, modelo, tela) solo mientras el pedido sigue en Almacén.

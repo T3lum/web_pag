@@ -388,7 +388,11 @@ function buildPayload(q, est) {
   const color = q.threeD ? (COLOR_NAMES[q.threeD.colores.tejido] || q.threeD.colores.tejido) : q.color;
   const cliente = { nombre: q.cliente.nombre.trim(), telefono: q.cliente.telefono.trim() }; if (q.cliente.empresa.trim()) cliente.empresa = q.cliente.empresa.trim();
   const item = { producto: p.id, cantidad: Number(q.cantidad), personalizacion: q.personalizacion, tallas, notas: buildNotes(q) }; if (color) item.color = color;
-  const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada };
+  // El precio de la lista oficial (config.js) viaja con la cotización: es lo que ve ventas al confirmar.
+  // La clave contra duplicados evita dos cotizaciones si la persona reintenta tras un corte de conexión.
+  const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada, origen: 'web', marca: 'CORPOTEX', clave_idempotencia: q.qid };
+  const total = productUnitPrice(p) * Number(q.cantidad); if (total > 0) payload.precio_total = Math.round(total * 100) / 100;
+  if (q.fechaDeseada) payload.fecha_deseada = q.fechaDeseada;
   return payload;
 }
 // Ficha PDF del diseño (vistas, especificaciones, logo original y referencias): es el archivo que recibe la cotización.
@@ -478,7 +482,7 @@ async function saveQuote() {
   catch (e) { return fail(e.offline ? e.message : 'El sistema de Corpotex no aceptó la solicitud: ' + e.message) }
   if (!res || !res.codigo) return fail('El sistema de Corpotex no devolvió un código de solicitud. Inténtalo de nuevo.');
   const now = new Date().toISOString(), p = product(), threeD = quote.threeD ? { ...quote.threeD, logoFile: undefined } : null;
-  const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', intranet: { codigo: res.codigo, disenoSubido: null }, cliente: { ...quote.cliente }, item: { producto: p.id, nombre: p.nombre, cantidad: Number(quote.cantidad), personalizacion: quote.personalizacion, tallas: { ...quote.tallas }, color: quote.color || (threeD ? COLOR_NAMES[threeD.colores.tejido] || threeD.colores.tejido : '') }, estilo: quote.estilo, fechaDeseada: quote.fechaDeseada, fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: quote.notas, no3D: !!quote.no3D, design: threeD ? { versions: [{ v: 1, tipo: 'original', estado: 'registrada', creado: now, config: { ...threeD, previews: undefined }, previews: threeD.previews, logoKey: designLogo ? `${res.codigo}:v1:logo` : null }] } : null, revision: quote.revision ? { ...quote.revision } : null, modificaciones: [] };
+  const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', intranet: { codigo: res.codigo, clave: res.clave || null, disenoSubido: null }, cliente: { ...quote.cliente }, item: { producto: p.id, nombre: p.nombre, cantidad: Number(quote.cantidad), personalizacion: quote.personalizacion, tallas: { ...quote.tallas }, color: quote.color || (threeD ? COLOR_NAMES[threeD.colores.tejido] || threeD.colores.tejido : '') }, estilo: quote.estilo, fechaDeseada: quote.fechaDeseada, fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: quote.notas, no3D: !!quote.no3D, design: threeD ? { versions: [{ v: 1, tipo: 'original', estado: 'registrada', creado: now, config: { ...threeD, previews: undefined }, previews: threeD.previews, logoKey: designLogo ? `${res.codigo}:v1:logo` : null }] } : null, revision: quote.revision ? { ...quote.revision } : null, modificaciones: [] };
   persistDesignRequest('pedido', {
     id: res.codigo,
     status: 'Pendiente de revisión',
@@ -602,7 +606,7 @@ function renderSolicitudes(r) {
 
 /* ---------- Modificaciones durante la fabricación ---------- */
 const stateCache = new Map();
-async function loadState(o) { if (stateCache.has(o.id)) return stateCache.get(o.id); const s = C.estadoEnLinea ? await Intranet.estadoCotizacion(o.id) : { disponible: false }; const out = s.disponible ? { known: true, etapa: normStage(s.etapa), precio: s.precio } : { known: false }; stateCache.set(o.id, out); return out }
+async function loadState(o) { if (stateCache.has(o.id)) return stateCache.get(o.id); const s = C.estadoEnLinea ? await Intranet.estadoCotizacion(o.id, o.intranet && o.intranet.clave) : { disponible: false }; const out = s.disponible ? { known: true, etapa: normStage(s.etapa), precio: s.precio } : { known: false }; stateCache.set(o.id, out); return out }
 function normStage(x) { const t = String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (/entreg/.test(t)) return 'entregado'; if (/listo|termin/.test(t)) return 'listo'; if (/acabad/.test(t)) return 'acabados'; if (/bordad|dtf|sublim|estamp/.test(t)) return 'decoracion'; if (/confecc/.test(t)) return 'confeccion'; if (/corte/.test(t)) return 'corte'; if (/almac/.test(t)) return 'almacen'; if (/confirm|produc/.test(t)) return 'confirmada'; return 'registrada' }
 // Recorrido por etapas según la personalización (en sublimado la tela se estampa antes del corte).
 function route(pers) { const base = ['registrada', 'confirmada', 'almacen']; if (pers === 'sublimado') return [...base, 'decoracion', 'corte', 'confeccion', 'acabados', 'listo', 'entregado']; if (pers === 'ninguna') return [...base, 'corte', 'confeccion', 'acabados', 'listo', 'entregado']; return [...base, 'corte', 'confeccion', 'decoracion', 'acabados', 'listo', 'entregado'] }

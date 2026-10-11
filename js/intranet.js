@@ -40,11 +40,12 @@ const Intranet = (() => {
     const fd = new FormData(); fd.append('archivo', blob, nombre);
     return request(`/api/cotizaciones/${encodeURIComponent(codigo)}/diseno`, { method: 'POST', body: fd });
   }
-  // El sistema interno todavía no publica el estado de fabricación de una cotización.
-  // Si se habilita GET /api/cotizaciones/{codigo} con { estado, etapa, precio_confirmado }, la web lo usará sin más cambios.
-  async function estadoCotizacion(codigo) {
+  // Etapa de fabricación de una cotización: { estado, etapa, precio_confirmado, fecha_comprometida, cambios }.
+  async function estadoCotizacion(codigo, clave) {
+    // Sin la clave que se entregó al registrar no se puede consultar (solicitudes anteriores a ese cambio).
+    if (!clave) return { disponible: false };
     try {
-      const d = await request(`/api/cotizaciones/${encodeURIComponent(codigo)}`);
+      const d = await request(`/api/cotizaciones/${encodeURIComponent(codigo)}?clave=${encodeURIComponent(clave)}`);
       return { disponible: true, etapa: d.etapa || d.estado || null, precio: Number(d.precio_confirmado) || null, raw: d };
     } catch (e) { return { disponible: false, error: e }; }
   }

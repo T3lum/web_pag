@@ -3,9 +3,12 @@ window.CORPOTEX_CONFIG = {
   // Sistema interno (ver PARA-EQUIPO-WEB.md). La web solo usa sus servicios públicos /api.
   intranetUrl: 'https://sistemainterno-production.up.railway.app',
   intranetTimeoutMs: 15000,
-  // Cambiar a true cuando el sistema interno publique GET /api/cotizaciones/{codigo} con la etapa de fabricación.
-  // Mientras sea false, «Mis solicitudes» no consulta ese servicio (hoy responde 404 y deja un error en la consola).
-  estadoEnLinea: false,
+  // El sistema interno publica la etapa de cada cotización en GET /api/cotizaciones/{codigo}?clave=…
+  // «Mis solicitudes» la consulta con la clave que se recibió al registrar.
+  estadoEnLinea: true,
+
+  // Asistente con inteligencia artificial (js/chat.js). La clave va en js/config.local.js, que no se sube al repositorio.
+  geminiModelo: 'gemini-3.5-flash-lite',
 
   // WhatsApp de ventas: 983 453 702 en formato internacional de Perú (51 + número), sin «+».
   whatsapp: '51983453702',
@@ -54,11 +57,14 @@ window.CORPOTEX_CONFIG = {
   // «permitidoAntesDe»: etapa de fabricación desde la cual esa categoría ya no se acepta.
   modificaciones: {
     categorias: [
-      { id: 1, nombre: 'Ajuste leve', descripcion: 'Corrección de texto, pequeños ajustes de color o ubicación del logo sin rehacer el diseño.',
+      // Regla de la empresa (2026-10-11): el cambio sencillo no cuesta y se acepta hasta antes de Bordado, DTF o
+      // Sublimado. El cambio detallado tiene un cobro adicional y solo se acepta mientras el pedido sigue en Almacén:
+      // desde que entra a Corte ya no se puede.
+      { id: 1, nombre: 'Cambio sencillo', descripcion: 'Texto o tipografía del logo, pequeños ajustes de color o de ubicación, sin rehacer el diseño.',
         recargo: { tipo: 'fijo', desde: 0 }, permitidoAntesDe: 'decoracion' },
-      { id: 2, nombre: 'Cambio moderado', descripcion: 'Modificar parcialmente elementos gráficos o composición, sin cambiar el patronaje.',
-        recargo: { tipo: 'porcentaje', valor: 10, rango: [5, 15] }, permitidoAntesDe: 'decoracion' },
-      { id: 3, nombre: 'Rediseño mayor', descripcion: 'Rediseño integral, patronaje o técnica que deba reevaluar un especialista.',
+      { id: 2, nombre: 'Cambio detallado', descripcion: 'Cambiar parte de los elementos gráficos o de la composición del diseño.',
+        recargo: { tipo: 'porcentaje', valor: 10, rango: [5, 15] }, permitidoAntesDe: 'corte' },
+      { id: 3, nombre: 'Cambio de modelo', descripcion: 'Cambiar el cuello (por ejemplo, de redondo a cuello en V), el patronaje o la tela.',
         recargo: { tipo: 'porcentaje', valor: 25, rango: [20, 40] }, permitidoAntesDe: 'corte' }
     ],
     // Cada modificación aprobada se calcula por separado sobre el valor de referencia (no se suman porcentajes).

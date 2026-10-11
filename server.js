@@ -171,6 +171,14 @@ app.patch('/api/design-requests/:id', requireAuth, (req, res) => {
   return res.json({ ok: true, id, status: nextStatus });
 });
 
+// La clave de Gemini del asistente no está en el repositorio. En el hosting se define como variable
+// GEMINI_KEY y se entrega aquí; en una máquina local puede existir el archivo js/config.local.js.
+app.get('/js/config.local.js', (req, res, next) => {
+  if (!process.env.GEMINI_KEY) return next();
+  res.type('application/javascript').set('Cache-Control', 'no-store');
+  return res.send(`window.CORPOTEX_CONFIG.geminiKey = ${JSON.stringify(process.env.GEMINI_KEY)};\n`);
+});
+
 app.use(express.static(rootDir, { index: false }));
 
 app.get('/designer', (req, res) => {
