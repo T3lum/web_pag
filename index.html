@@ -15,7 +15,7 @@
 <a class="skip" href="#main">Saltar al contenido</a>
 <header class="hdr" id="hdr"><div class="container hdr-in">
  <a class="brand" href="#inicio" data-route="inicio" aria-label="Corpotex, ir al inicio"><img src="assets/logo_corpotex_simbolo.png" alt=""/><span><b>Corpotex</b><small>Vestimos a todas las industrias</small></span></a>
- <nav class="topnav" id="topnav" aria-label="Principal"><button type="button" data-route="inicio">Inicio</button><button type="button" data-route="catalogo">Productos</button><button type="button" data-scroll="proceso">Cómo funciona</button><button type="button" data-scroll="servicios">Servicios</button><button type="button" data-scroll="nosotros">Nosotros</button><button type="button" data-scroll="contacto">Contacto</button><button type="button" data-route="solicitudes">Mis solicitudes</button></nav>
+ <nav class="topnav" id="topnav" aria-label="Principal"><button type="button" data-route="inicio">Inicio</button><button type="button" data-route="catalogo">Productos</button><button type="button" data-scroll="proceso">Cómo funciona</button><button type="button" data-scroll="servicios">Servicios</button><button type="button" data-scroll="nosotros">Nosotros</button><button type="button" data-scroll="contacto">Contacto</button><button type="button" data-route="solicitudes">Mis solicitudes</button><a href="/designer" class="nav-link">Diseñador</a></nav>
  <button class="btn btn-dark hdr-cta" type="button" data-action="new-quote">Cotizar <span class="lg-only">mi prenda</span></button>
  <button class="menu-btn" id="menuBtn" type="button" aria-controls="topnav" aria-expanded="false" aria-label="Abrir menú"><span aria-hidden="true"></span></button>
 </div></header>
@@ -110,7 +110,6 @@
    <p class="field-err" id="err-cantidad" hidden></p>
    <div class="field"><span>Tallas * <small class="muted" id="sizeSum">Suma: 0 de 12</small></span><div class="sizes" id="sizes"></div></div>
    <p class="field-err" id="err-tallas" hidden></p>
-   <label class="field" id="colorField"><span>Color de la prenda (opcional)</span><input id="garmentColor" maxlength="60" placeholder="Ej. Azul marino"/></label>
   </div>
   <div class="card">
    <h2 class="card-t">Tus datos de contacto</h2>
@@ -125,8 +124,6 @@
   <div class="card">
    <h2 class="card-t">Entrega</h2>
    <div class="estimate" id="estimateBox" aria-live="polite"></div>
-   <label class="field"><span>Fecha deseada de entrega (opcional)</span><input id="desiredDate" type="date"/><small>Debe ser igual o posterior a la entrega estimada.</small></label>
-   <p class="field-err" id="err-fecha" hidden></p>
    <label class="field"><span>Detalles y requisitos especiales</span><textarea id="notes" maxlength="600" placeholder="Tela, uso, normas técnicas u otros requisitos."></textarea></label>
   </div>
   <div class="alert" id="validationMsg" role="alert" hidden></div>

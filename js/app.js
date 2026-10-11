@@ -187,8 +187,7 @@ function renderStep0() {
   if (!$('sizes').children.length) $('sizes').innerHTML = C.tallas.map(t => `<label>${t}<input type="number" inputmode="numeric" min="0" max="100000" data-talla="${t}" aria-label="Unidades talla ${t}"/></label>`).join('');
   QA('[data-talla]').forEach(inp => { const v = quote.tallas[inp.dataset.talla]; inp.value = v ? v : '' });
   updateSizeSum();
-  $('colorField').hidden = !!(p && p.editor3d);
-  $('garmentColor').value = quote.color; $('customer').value = quote.cliente.nombre; $('company').value = quote.cliente.empresa; $('phone').value = quote.cliente.telefono; $('email').value = quote.cliente.correo; $('desiredDate').value = quote.fechaDeseada; $('notes').value = quote.notas;
+  $('customer').value = quote.cliente.nombre; $('company').value = quote.cliente.empresa; $('phone').value = quote.cliente.telefono; $('email').value = quote.cliente.correo; $('notes').value = quote.notas;
   renderEstimate();
 }
 function selectGarment(id) {
@@ -203,18 +202,16 @@ function syncStep0(e) {
   else switch (t.id) {
     case 'personalizacion': quote.personalizacion = t.value; scheduleEstimate(); break;
     case 'quantity': quote.cantidad = t.value === '' ? null : Math.floor(Number(t.value)); updateSizeSum(); clearErr('cantidad'); scheduleEstimate(); break;
-    case 'garmentColor': quote.color = t.value.trim(); break;
     case 'customer': quote.cliente.nombre = t.value; clearErr('contacto'); break;
     case 'company': quote.cliente.empresa = t.value; break;
     case 'phone': quote.cliente.telefono = t.value; clearErr('contacto'); break;
     case 'email': quote.cliente.correo = t.value.trim(); clearErr('contacto'); break;
-    case 'desiredDate': quote.fechaDeseada = t.value; checkDate(true); break;
     case 'notes': quote.notas = t.value; break;
     default: return;
   }
   quoteStarted = true; renderAside(); autoSaveDraft();
 }
-function setErr(k, msg) { const e = $('err-' + k); if (!e) return; e.textContent = msg; e.hidden = !msg; const map = { cantidad: 'quantity', contacto: null, fecha: 'desiredDate', tallas: null }; if (map[k]) $(map[k]).closest('.field').classList.toggle('invalid', !!msg); if (k === 'tallas') $('sizes').classList.toggle('invalid', !!msg) }
+function setErr(k, msg) { const e = $('err-' + k); if (!e) return; e.textContent = msg; e.hidden = !msg; const map = { cantidad: 'quantity', contacto: null, tallas: null }; if (map[k]) $(map[k]).closest('.field').classList.toggle('invalid', !!msg); if (k === 'tallas') $('sizes').classList.toggle('invalid', !!msg) }
 const clearErr = k => setErr(k, '');
 
 /* Entrega estimada (sistema interno) */
@@ -235,7 +232,7 @@ function estimateHTML(st) {
   if (st.state !== 'ok') { const p = product(); return `<div class="estimate wait">${p ? `Indica al menos ${p.minimo} unidades para calcular la entrega estimada.` : 'Elige una prenda y la cantidad para calcular la entrega estimada.'}</div>` }
   const d = st.data; return `<div class="estimate">Entrega estimada<b class="date">${esc(fmtDate(d.fecha_estimada, true))}</b>${d.dias_habiles} días hábiles según la carga actual de la planta. Es una estimación: ventas confirma la fecha en firme.${Array.isArray(d.detalle) && d.detalle.length ? `<details><summary class="small" style="cursor:pointer;margin-top:6px">Ver etapas</summary><ul class="timeline">${d.detalle.map(x => `<li><span>${esc(x.area)}</span><span>${fmtDate(x.inicio)} – ${fmtDate(x.fin)}</span></li>`).join('')}</ul></details>` : ''}</div>`;
 }
-function renderEstimate() { const b = $('estimateBox'); if (b) b.innerHTML = estimateHTML(estimate); const ok = estimate.state === 'ok'; $('desiredDate').min = ok ? estimate.data.fecha_estimada : ''; }
+function renderEstimate() { const b = $('estimateBox'); if (b) b.innerHTML = estimateHTML(estimate); }
 // Las fechas se comparan como texto AAAA-MM-DD (el formato del sistema interno), sin pasar por la zona horaria del navegador.
 const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const weekday = iso => new Date(iso + 'T12:00:00Z').getUTCDay();
@@ -261,9 +258,8 @@ function validStep0(show) {
   if (String(c.nombre).trim().length < 2) errs.contacto = 'Ingresa tu nombre de contacto.';
   else if (digits.length < 7 || digits.length > 15) errs.contacto = 'Ingresa un teléfono válido (al menos 7 dígitos).';
   else if (c.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c.correo)) errs.contacto = 'Revisa el correo electrónico o déjalo vacío.';
-  if (p && !errs.cantidad && !errs.producto) {
-    if (estimate.state !== 'ok' || estimate.key !== estKey()) errs.fecha = estimate.state === 'error' ? 'No ha sido posible verificar la disponibilidad. Reintenta el cálculo de la entrega estimada.' : 'Esperando la entrega estimada de la planta.';
-    else { const m = dateError(quote.fechaDeseada, estimate.data); if (m) errs.fecha = m }
+  if (p && !errs.cantidad && !errs.producto && estimate.state !== 'ok') {
+    errs.fecha = estimate.state === 'error' ? 'No ha sido posible verificar la disponibilidad. Reintenta el cálculo de la entrega estimada.' : 'Esperando la entrega estimada de la planta.';
   }
   if (show) { ['producto', 'cantidad', 'tallas', 'contacto', 'fecha'].forEach(k => setErr(k, errs[k] || '')); const first = Object.keys(errs)[0]; const v = $('validationMsg'); v.hidden = !first; v.textContent = first ? 'Revisa los campos marcados antes de continuar.' : ''; if (first) { const target = { producto: 'garmentGrid', cantidad: 'quantity', tallas: 'sizes', contacto: 'customer', fecha: 'estimateBox' }[first]; $(target)?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } }
   return { ok: !Object.keys(errs).length, errs };
@@ -312,6 +308,23 @@ function saveReview(ev) {
   if (desc.length < 20) { e.textContent = 'Describe el diseño con al menos 20 caracteres para que el diseñador pueda evaluarlo.'; e.hidden = false; $('reviewDesc').closest('.field').classList.add('invalid'); return }
   $('reviewDesc').closest('.field').classList.remove('invalid');
   quote.revision = { id: quote.revision ? quote.revision.id : 'REV-' + Date.now().toString(36).toUpperCase().slice(-6), motivo: $('reviewMotivo').value, descripcion: desc, archivos: reviewFiles.map(f => ({ nombre: f.name, tipo: f.type, tamano: f.size })), estado: 'Pendiente de revisión', creada: new Date().toISOString() };
+  persistDesignRequest('revision', {
+    id: quote.revision.id,
+    status: 'Pendiente de revisión',
+    customer: {
+      nombre: quote.cliente.nombre,
+      empresa: quote.cliente.empresa,
+      telefono: quote.cliente.telefono,
+      correo: quote.cliente.correo
+    },
+    product: product() ? product().nombre : null,
+    quantity: quote.cantidad,
+    note: desc,
+    type: 'revision',
+    motivo: quote.revision.motivo,
+    descripcion: desc,
+    archivoCount: reviewFiles.length
+  });
   autoSaveDraft(); closeReview(); renderReview(); updateDesignNext(); toast('Solicitud de revisión guardada: se enviará junto con tu pedido.');
 }
 function removeReview() { quote.revision = null; reviewFiles = []; autoSaveDraft(); renderReview(); updateDesignNext() }
@@ -328,12 +341,10 @@ function renderAside() {
 function designSpec(t) { if (!t || !t.colores) return ''; return `Diseño 3D: polo camisero, 2 botones. Tejido ${colorName(t.colores.tejido)}; cuello y puños ${colorName(t.colores.cuello)}; botones ${colorName(t.colores.botones)}. Estampado: ${t.resumenEstampado}${t.estampado && (t.estampado.logo || t.estampado.texto) ? ' · ' + t.ubicacion : ''}.` }
 function summaryRows(q, est) {
   const p = productById(q.producto) || { nombre: q.producto }, rows = [['Prenda', p.nombre], ['Personalización', persLabel(q.personalizacion)], ['Cantidad', `${q.cantidad} uds.`], ['Tallas', tallasText(q.tallas)], ['Estilo base', STYLES[q.estilo].name]];
-  if (q.color) rows.push(['Color', q.color]);
   if (q.threeD && q.threeD.colores) { rows.push(['Colores (3D)', `Tejido ${colorName(q.threeD.colores.tejido)} · cuello y puños ${colorName(q.threeD.colores.cuello)} · botones ${colorName(q.threeD.colores.botones)}`], ['Estampado', q.threeD.resumenEstampado + (q.threeD.estampado && (q.threeD.estampado.logo || q.threeD.estampado.texto) ? ' · ' + q.threeD.ubicacion : '')]) }
   if (q.no3D) rows.push(['Diseño 3D', 'No disponible: el equipo de diseño preparará la propuesta']);
   if (q.revision) rows.push(['Revisión del diseñador', `${q.revision.id} · ${q.revision.motivo}`]);
   rows.push(['Contacto', [q.cliente.nombre, q.cliente.empresa].filter(Boolean).join(' · ')], ['Teléfono', q.cliente.telefono]); if (q.cliente.correo) rows.push(['Correo', q.cliente.correo]);
-  if (q.fechaDeseada) rows.push(['Fecha deseada', fmtDate(q.fechaDeseada)]);
   rows.push(['Entrega estimada', est ? `${fmtDate(est.fecha_estimada)} (${est.dias_habiles} días háb.)` : '—']);
   if (q.notas) rows.push(['Detalles', q.notas]);
   return rows;
@@ -347,11 +358,10 @@ async function renderSummary() {
   const done = !!savedId; $('summaryActions').hidden = done; $('saveMsg').hidden = true; if (done) return;
   $('saveOrderButton').disabled = saving;
   // La estimación cambia con la carga de la planta: se vuelve a pedir al llegar al resumen.
-  estimate.at = 0; await runEstimate(); draw(); const dm = dateError(quote.fechaDeseada, estimate.state === 'ok' ? estimate.data : null); if (dm) showMsg('saveMsg', dm + ' Vuelve al paso 1 para elegir otra fecha.');
+  estimate.at = 0; await runEstimate(); draw();
 }
 function buildNotes(q) {
-  const parts = [`Estilo base: ${STYLES[q.estilo].name}.`]; if (q.threeD) parts.push(designSpec(q.threeD)); if (q.no3D) parts.push('El editor 3D no estuvo disponible para el cliente.');
-  if (q.fechaDeseada) parts.push(`Fecha deseada por el cliente: ${q.fechaDeseada}.`); if (q.cliente.correo) parts.push(`Correo: ${q.cliente.correo}.`);
+  const parts = [`Estilo base: ${STYLES[q.estilo].name}.`]; if (q.threeD) parts.push(designSpec(q.threeD)); if (q.no3D) parts.push('El editor 3D no estuvo disponible para el cliente.'); if (q.cliente.correo) parts.push(`Correo: ${q.cliente.correo}.`);
   if (q.revision) parts.push(`REVISIÓN DEL DISEÑADOR ${q.revision.id} (${q.revision.motivo}): ${q.revision.descripcion}`);
   if (q.notas) parts.push(`Notas del cliente: ${q.notas}`);
   return parts.join(' ');
@@ -362,7 +372,6 @@ function buildPayload(q, est) {
   const cliente = { nombre: q.cliente.nombre.trim(), telefono: q.cliente.telefono.trim() }; if (q.cliente.empresa.trim()) cliente.empresa = q.cliente.empresa.trim();
   const item = { producto: p.id, cantidad: Number(q.cantidad), personalizacion: q.personalizacion, tallas, notas: buildNotes(q) }; if (color) item.color = color;
   const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada };
-  if (q.fechaDeseada) payload.fecha_deseada = q.fechaDeseada; // propuesto al sistema interno para validarlo también en su servidor
   return payload;
 }
 // Ficha PDF del diseño (vistas, especificaciones, logo original y referencias): es el archivo que recibe la cotización.
@@ -400,6 +409,29 @@ async function uploadDesign(order) {
   try { await Intranet.subirDiseno(order.id, file.blob, file.name); return { ok: true, name: file.name } } catch (e) { return { ok: false, error: e.message } }
 }
 function openPlaceholder() { try { const w = window.open('', '_blank'); if (!w) return null; w.opener = null; w.document.write('<!doctype html><meta charset="utf-8"><title>Corpotex</title><p style="font:16px system-ui;padding:24px;color:#0d2547">Registrando tu solicitud en Corpotex… Cuando quede registrada se abrirá WhatsApp con el reporte de tu pedido.</p>'); return w } catch (e) { return null } }
+async function persistDesignRequest(type, payload) {
+  try {
+    const response = await fetch('/api/design-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: payload.id || undefined,
+        type,
+        status: payload.status || 'Pendiente de revisión',
+        customer: payload.customer || {},
+        product: payload.product || null,
+        quantity: payload.quantity ?? null,
+        note: payload.note || '',
+        ...payload
+      })
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (e) {
+    console.warn('No se pudo persistir la solicitud en la base de datos del diseñador.', e);
+    return null;
+  }
+}
 
 /* Reporte para WhatsApp: se arma con los datos de la solicitud ya registrada. Las líneas sin dato se omiten. */
 function reportBlock(title, rows) { const r = rows.filter(([, v]) => v !== undefined && v !== null && v !== false && String(v).trim() !== ''); return r.length ? ['', `*${title}*`, ...r.map(([k, v]) => `• ${k}: ${v}`)] : [] }
@@ -410,7 +442,7 @@ function orderReport(o, etapa) {
   const prev = o.intranet && o.intranet.disenoSubido ? `ficha del diseño adjunta a la cotización en el sistema de Corpotex${o.intranet.archivo ? ` (${o.intranet.archivo})` : ''}` : '';
   return ['*REPORTE DE SOLICITUD — CORPOTEX*', `Código de solicitud: ${o.id}`, `Fecha de registro: ${fmtDateTime(o.createdAt)}`,
     ...reportBlock('DATOS DEL CLIENTE', [['Nombre', o.cliente.nombre], ['Empresa u organización', o.cliente.empresa], ['Teléfono', o.cliente.telefono], ['Correo', o.cliente.correo]]),
-    ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', it.nombre], ['Personalización', persLabel(it.personalizacion)], ['Estilo', STYLES[o.estilo] && STYLES[o.estilo].name], ['Cantidad', `${it.cantidad} uds.${tallasText(it.tallas) ? ` (${tallasText(it.tallas)})` : ''}`], ['Color', it.color], ['Fecha deseada de entrega', o.fechaDeseada && fmtDate(o.fechaDeseada)], ['Fecha estimada de entrega', est]]),
+    ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', it.nombre], ['Personalización', persLabel(it.personalizacion)], ['Estilo', STYLES[o.estilo] && STYLES[o.estilo].name], ['Cantidad', `${it.cantidad} uds.${tallasText(it.tallas) ? ` (${tallasText(it.tallas)})` : ''}`], ['Fecha estimada de entrega', est]]),
     ...reportBlock('DISEÑO PERSONALIZADO', [['Diseño 3D', t && 'polo camisero con 2 botones'], ['Colores', t && `tejido ${colorName(t.colores.tejido)}; cuello y puños ${colorName(t.colores.cuello)}; botones ${colorName(t.colores.botones)}`], ['Estampados', t && t.resumenEstampado + (e && (e.logo || e.texto) ? ` · ${t.ubicacion}` : '')], ['Diseño', o.no3D && 'el editor 3D no estuvo disponible; el equipo de diseño preparará la propuesta'], ['Revisión del diseñador', o.revision && `${o.revision.id} · ${o.revision.motivo} · ${o.revision.estado}`], ['Observaciones', o.notasCliente], ['Vista previa', prev]]),
     '', '*ESTADO*', '• Solicitud registrada correctamente en el sistema de Corpotex.', `• Estado actual: ${etapa ? stageName(etapa) + '.' : ORDER_STATE_TXT}`].join('\n');
 }
@@ -424,13 +456,24 @@ async function saveQuote() {
   let est;
   try { btn.textContent = 'Verificando la entrega estimada…'; est = await Intranet.estimar([{ producto: quote.producto, cantidad: Number(quote.cantidad), personalizacion: quote.personalizacion }]); estimate = { state: 'ok', key: estKey(), data: est, error: '', at: Date.now() } }
   catch (e) { return fail('No ha sido posible verificar la disponibilidad con la planta. No registramos la solicitud con una fecha sin verificar: inténtalo de nuevo. ' + e.message) }
-  const dm = dateError(quote.fechaDeseada, est); if (dm) { renderSummary(); return fail(dm + ' Vuelve al paso 1 para elegir otra fecha.') }
   let res;
   try { btn.textContent = 'Registrando en el sistema de Corpotex…'; res = await Intranet.crearCotizacion(buildPayload(quote, est)) }
   catch (e) { return fail(e.offline ? e.message : 'El sistema de Corpotex no aceptó la solicitud: ' + e.message) }
   if (!res || !res.codigo) return fail('El sistema de Corpotex no devolvió un código de solicitud. Inténtalo de nuevo.');
   const now = new Date().toISOString(), p = product(), threeD = quote.threeD ? { ...quote.threeD, logoFile: undefined } : null;
   const order = { id: res.codigo, v: 3, createdAt: now, estado: 'registrada', intranet: { codigo: res.codigo, disenoSubido: null }, cliente: { ...quote.cliente }, item: { producto: p.id, nombre: p.nombre, cantidad: Number(quote.cantidad), personalizacion: quote.personalizacion, tallas: { ...quote.tallas }, color: quote.color || (threeD ? COLOR_NAMES[threeD.colores.tejido] || threeD.colores.tejido : '') }, estilo: quote.estilo, fechaDeseada: quote.fechaDeseada, fechaEstimada: est.fecha_estimada, diasHabiles: est.dias_habiles, notasCliente: quote.notas, no3D: !!quote.no3D, design: threeD ? { versions: [{ v: 1, tipo: 'original', estado: 'registrada', creado: now, config: { ...threeD, previews: undefined }, previews: threeD.previews, logoKey: designLogo ? `${res.codigo}:v1:logo` : null }] } : null, revision: quote.revision ? { ...quote.revision } : null, modificaciones: [] };
+  persistDesignRequest('pedido', {
+    id: res.codigo,
+    status: 'Pendiente de revisión',
+    customer: { nombre: quote.cliente.nombre, empresa: quote.cliente.empresa, telefono: quote.cliente.telefono, correo: quote.cliente.correo },
+    product: p.nombre,
+    quantity: Number(quote.cantidad),
+    note: quote.notas,
+    type: 'pedido',
+    estilo: quote.estilo,
+    personalizacion: quote.personalizacion,
+    revision: quote.revision ? quote.revision.id : null
+  });
   savedId = res.codigo; saving = false; quoteStarted = false;
   if (!Store.add(order)) toast('La solicitud se registró en Corpotex, pero no se pudo guardar la copia en este dispositivo.');
   try { sessionStorage.removeItem(DRAFT) } catch (e) {}
@@ -523,7 +566,7 @@ function renderSolicitudes(r) {
   if (r.mod) return renderModStart(o, el);
   el.innerHTML = `<div class="page-head"><button class="circle-btn" type="button" data-route="solicitudes" aria-label="Volver a mis solicitudes">←</button><div class="page-title"><span class="eyebrow-d">Solicitud</span><h1>${esc(o.id)}</h1></div><span class="page-head-sp"></span></div>
   <div class="flow wide"><div class="flow-main step-view show">
-   <div class="card"><h2 class="card-t">${esc(o.item.nombre)}</h2><dl class="kv"><dt>Registrada</dt><dd>${fmtDateTime(o.createdAt)}</dd><dt>Cantidad</dt><dd>${o.item.cantidad} uds.${o.item.tallas && tallasText(o.item.tallas) ? ' · ' + tallasText(o.item.tallas) : ''}</dd><dt>Personalización</dt><dd>${esc(persLabel(o.item.personalizacion))}</dd>${o.fechaEstimada ? `<dt>Entrega estimada</dt><dd>${fmtDate(o.fechaEstimada)} (estimada)</dd>` : ''}${o.fechaDeseada ? `<dt>Fecha deseada</dt><dd>${fmtDate(o.fechaDeseada)}</dd>` : ''}<dt>Contacto</dt><dd>${esc(o.cliente.nombre)} · ${esc(o.cliente.telefono)}</dd></dl></div>
+   <div class="card"><h2 class="card-t">${esc(o.item.nombre)}</h2><dl class="kv"><dt>Registrada</dt><dd>${fmtDateTime(o.createdAt)}</dd><dt>Cantidad</dt><dd>${o.item.cantidad} uds.${o.item.tallas && tallasText(o.item.tallas) ? ' · ' + tallasText(o.item.tallas) : ''}</dd><dt>Personalización</dt><dd>${esc(persLabel(o.item.personalizacion))}</dd>${o.fechaEstimada ? `<dt>Entrega estimada</dt><dd>${fmtDate(o.fechaEstimada)} (estimada)</dd>` : ''}<dt>Contacto</dt><dd>${esc(o.cliente.nombre)} · ${esc(o.cliente.telefono)}</dd></dl></div>
    <div class="card"><h2 class="card-t">Estado de fabricación</h2><div id="prodState" class="estimate wait">${o.legacy ? 'Esta solicitud se guardó solo en este navegador con una versión anterior de la web: no está en el sistema de Corpotex.' : 'Consultando el estado con el sistema de Corpotex…'}</div></div>
    ${o.design ? `<div class="card"><h2 class="card-t">Versiones del diseño</h2><div class="versions">${o.design.versions.map(v => `<figure class="version">${imgTag(v.previews && v.previews.f, 'Versión ' + v.v)}<figcaption><b>${v.v === 1 ? 'Original' : 'Versión ' + v.v}</b><br/><span class="badge ${v.v === 1 ? 'info' : (MOD_STATE[v.estado] || ['', ''])[1]}">${v.v === 1 ? 'Registrada' : esc((MOD_STATE[v.estado] || [v.estado])[0])}</span></figcaption></figure>`).join('')}</div><p class="muted small" style="margin-top:8px">La versión original se conserva siempre. Las modificaciones se guardan como versiones nuevas y no se aplican a producción hasta que Corpotex las apruebe.</p></div>` : ''}
    ${o.revision ? `<div class="card"><h2 class="card-t">Revisión del diseñador</h2><dl class="kv"><dt>Solicitud</dt><dd>${esc(o.revision.id)}</dd><dt>Motivo</dt><dd>${esc(o.revision.motivo)}</dd><dt>Estado</dt><dd>${esc(o.revision.estado)}</dd></dl></div>` : ''}
@@ -630,6 +673,19 @@ function submitModification(o, cat, diff, consulta, st) {
   // WhatsApp se abre dentro del clic para que el navegador no lo bloquee, después de guardar el registro local.
   const ok = Store.update(raw, x => { x.modificaciones = x.modificaciones || []; x.modificaciones.push(m); if (nd) x.design.versions.push({ v: n, tipo: 'modificacion', estado: m.estado, modificacion: m.id, creado: now, config: nd.config, previews: nd.previews, logoKey: nd.logoFile ? `${o.id}:v${n}:logo` : null }) });
   if (!ok) { showMsg('modMsg', 'No se pudo guardar la modificación en este dispositivo (almacenamiento lleno o bloqueado).'); return }
+  persistDesignRequest('modificacion', {
+    id: m.id,
+    status: consulta ? 'Pendiente de revisión' : 'Pendiente de revisión',
+    customer: { nombre: o.cliente.nombre, empresa: o.cliente.empresa, telefono: o.cliente.telefono, correo: o.cliente.correo },
+    product: o.item.nombre,
+    quantity: o.item.cantidad,
+    note: modSession.descripcion,
+    type: 'modificacion',
+    categoria: cat.id,
+    nombreCategoria: cat.nombre,
+    descripcion: modSession.descripcion,
+    consulta
+  });
   const w = window.open(waLink(modReport(o, m)), '_blank'); if (w) try { w.opener = null } catch (e) {}
   if (nd && nd.logoFile) Store.putFile(`${o.id}:v${n}:logo`, nd.logoFile).catch(() => {});
   Designer.dropContext('mod:' + o.id); modLoaded.delete('mod:' + o.id); modSession = null;
