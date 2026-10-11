@@ -302,11 +302,17 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     toast('Estoy generando las imágenes de tu polo en 3D. Mantén esta pestaña a la vista; tarda unos segundos.');
     if (!(await hasta(() => currentRoute.view !== 'editor' || Designer.viewsReady(), 150000)) || currentRoute.view !== 'editor') return soltar('No pude generar las imágenes solo. Pulsa «Usar este diseño» y después «Registrar solicitud».');
     $('d3Next').click();
-    if (!(await hasta(() => currentRoute.view === 'cotizar' && currentRoute.step === 2 && designReady(), 30000))) return soltar('Tu diseño está listo. Pulsa «Usar este diseño» y después «Registrar solicitud».');
+    // Al entrar al resumen la página vuelve a pedir la fecha a la planta. Hay que esperar esa respuesta: si se
+    // registra mientras está «consultando», la validación falla y la página regresa al primer paso.
+    if (!(await hasta(() => currentRoute.view === 'cotizar' && currentRoute.step === 2 && designReady() && estimate.state === 'ok', 45000))) return soltar('Tu diseño está listo. Pulsa «Registrar solicitud» en esta página.');
+    await new Promise(res => setTimeout(res, 400));
     await saveQuote(); busy = false;
-    if (!savedId) return;
+    if (!savedId) return toast('No se pudo registrar solo. Revisa los datos y pulsa «Registrar solicitud» en esta página.');
     registrado = savedId; if (resumenEl) { resumenEl.remove(); resumenEl = null }
-    card(`<b>Solicitud registrada</b><span class="big">${esc(savedId)}</span><span>Se registró con las imágenes 3D de tu polo. Envía el reporte a ventas con el botón de WhatsApp que ves en la página.</span><div class="acts"><button type="button" class="btn btn-light btn-sm" data-chat="ver" data-code="${esc(savedId)}">Ver mi solicitud</button><button type="button" class="btn btn-light btn-sm" data-chat="nueva">Nueva solicitud</button></div>`, 'ok');
+    // WhatsApp no se puede abrir solo: el navegador solo lo permite tras un toque directo. Se deja el botón a la mano.
+    const o = Store.find(savedId), wa = o ? waLink(orderReport(o)) : '';
+    card(`<b>Solicitud registrada</b><span class="big">${esc(savedId)}</span><span>Se registró con las imágenes 3D de tu polo. Falta un paso: envía el reporte a ventas por WhatsApp.</span><div class="acts">${wa ? `<a class="btn btn-dark btn-sm" target="_blank" rel="noopener" href="${esc(wa)}">Enviar por WhatsApp</a>` : ''}<button type="button" class="btn btn-light btn-sm" data-chat="ver" data-code="${esc(savedId)}">Ver mi solicitud</button><button type="button" class="btn btn-light btn-sm" data-chat="nueva">Nueva solicitud</button></div>`, 'ok');
+    toggleAssistant(true);
     history.push({ role: 'user', parts: [{ text: `[Sistema] La solicitud quedó registrada con el código ${savedId}.` }] });
   }
 
