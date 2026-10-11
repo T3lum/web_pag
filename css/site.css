@@ -138,7 +138,12 @@ cite{display:block;margin-top:8px;font-style:normal;font-size:12px;color:var(--m
 .pcard .tile img{width:100%;height:100%;object-fit:contain}
 .pcard b{font:400 15.5px/1.2 var(--serif);color:var(--ink);padding:0 4px}
 .pcard small{padding:0 4px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .money-tag{margin:0 4px;padding:5px 8px;border-radius:999px;background:var(--sky);color:var(--navy);font-size:12px;font-weight:800;display:inline-flex;align-self:flex-start}
 .pcard.sel{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy) inset}
+.product-price-box{display:flex;flex-direction:column;gap:4px;background:linear-gradient(135deg,#ecf6ff,#f4f7ff);border:1px solid #cfe0f5;border-radius:14px;padding:12px 14px;margin:10px 0 12px}
+.product-price-box span{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
+.product-price-box strong{font:400 26px/1.1 var(--serif);color:var(--navy)}
+.product-price-box small{font-size:12px;color:#334a67}
 .skeleton{background:linear-gradient(90deg,#e9edf2,#f5f7fa,#e9edf2);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:var(--r);min-height:190px;aspect-ratio:9/12}
 @keyframes sk{to{background-position:-200% 0}}
 .empty{background:#fff;border:1px dashed #cfd8e3;border-radius:var(--r);padding:20px;text-align:center;color:var(--muted)}

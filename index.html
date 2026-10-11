@@ -107,6 +107,11 @@
     <label class="field"><span>Personalización *</span><select id="personalizacion"></select></label>
     <label class="field"><span>Cantidad total *</span><input id="quantity" type="number" inputmode="numeric" min="1" max="100000" value="12"/><small id="minHint">Pedido mínimo: 12 unidades.</small></label>
    </div>
+   <div class="product-price-box" id="productPriceBox" hidden>
+    <span>Precio base estimado</span>
+    <strong id="productPriceValue">S/ 0.00 / prenda</strong>
+    <small id="productPriceNote">Total estimado: S/ 0.00.</small>
+   </div>
    <p class="field-err" id="err-cantidad" hidden></p>
    <div class="field"><span>Tallas * <small class="muted" id="sizeSum">Suma: 0 de 12</small></span><div class="sizes" id="sizes"></div></div>
    <p class="field-err" id="err-tallas" hidden></p>

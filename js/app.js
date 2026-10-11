@@ -24,6 +24,8 @@ const fmtDateTime = iso => new Date(iso).toLocaleString('es-PE', { day: '2-digit
 const money = n => 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const productById = id => catalog.find(p => p.id === id) || null;
 const product = () => productById(quote.producto);
+const productUnitPrice = p => Number((p && (p.precioReferencia ?? p.precioBase ?? p.precio ?? 0)) || 0);
+const productTotalPrice = () => productUnitPrice(product()) * (Number(quote.cantidad) || 0);
 const isPolo = p => !!p && /^polo/.test(p.id);
 const needs3D = () => { const p = product(); return !!(p && p.editor3d && !quote.revision && !quote.no3D) };
 const designReady = () => !!(quote.threeD && quote.threeD.previews && quote.threeD.previews.f);
@@ -51,7 +53,7 @@ async function loadCatalog() {
 function renderCatalogViews() { renderFeatured(); if (lastView === 'catalogo') renderCatalog(); if (lastView === 'producto') renderProduct(currentRoute.id); if (lastView === 'cotizar' && currentRoute.step === 0) renderStep0(); if (lastView === 'cotizar') renderAside(); }
 const lineCounts = () => { const c = { todos: catalog.length }; for (const p of catalog) c[p.linea] = (c[p.linea] || 0) + 1; return c };
 function lineChips(active, attr) { const c = lineCounts(); return ['todos', ...Object.keys(C.lineas).filter(l => c[l])].map(l => `<button class="chip ${active === l ? 'on' : ''}" type="button" role="tab" aria-selected="${active === l}" ${attr}="${l}">${l === 'todos' ? 'Todos' : esc(C.lineas[l])}<span class="n">${c[l] || 0}</span></button>`).join('') }
-function pcard(p, sel, act) { return `<button type="button" class="pcard${sel ? ' sel' : ''}" ${act}><span class="tile">${imgTag(photoOf(p), p.nombre)}</span><b>${esc(p.nombre)}</b><small>${esc(C.lineas[p.linea] || p.linea)} · mín. ${p.minimo} uds.</small></button>` }
+function pcard(p, sel, act) { const basePrice = productUnitPrice(p); return `<button type="button" class="pcard${sel ? ' sel' : ''}" ${act}><span class="tile">${imgTag(photoOf(p), p.nombre)}</span><b>${esc(p.nombre)}</b><small>${esc(C.lineas[p.linea] || p.linea)} · mín. ${p.minimo} uds.</small><span class="money-tag">Desde ${money(basePrice)}</span></button>` }
 function catalogStatus() { if (catalogState === 'loading') return '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>'; if (catalogState === 'error') return `<div class="empty" style="grid-column:1/-1">No pudimos cargar el catálogo desde el sistema de Corpotex.<br/><small>${esc(catalogError)}</small><br/><br/><button class="btn btn-dark btn-sm" type="button" onclick="loadCatalog()">Reintentar</button></div>`; return '' }
 function renderFeatured() { const el = $('featured'); if (!el) return; el.innerHTML = catalogStatus() || catalog.slice(0, 6).map(p => pcard(p, false, `data-product="${p.id}"`)).join('') }
 function renderCatalog() { $('lineChips').innerHTML = catalog.length ? lineChips(lineFilter, 'data-line') : ''; const n = $('catalogNotice'); n.hidden = catalogState !== 'cached'; n.textContent = 'Sin conexión con el sistema de Corpotex: mostramos el último catálogo disponible. Para cotizar se necesita conexión.';
@@ -64,7 +66,7 @@ async function renderProduct(id) {
   el.innerHTML = `<div class="page-head"><button class="circle-btn" type="button" data-back aria-label="Regresar">←</button><h1>Detalle de prenda</h1><span class="page-head-sp"></span></div>
   <div class="detail"><div><div class="detail-hero">${imgTag(photoOf(p, galleryIdx), p.nombre)}</div>${p.fotos.length > 1 ? `<div class="gallery-dots">${p.fotos.map((f, i) => `<button type="button" aria-label="Foto ${i + 1}" class="${i === galleryIdx ? 'on' : ''}" data-gal="${i}"></button>`).join('')}</div>` : ''}</div>
   <div class="detail-card"><span class="line">${esc(C.lineas[p.linea] || p.linea)}</span><h2>${esc(p.nombre)}</h2><p>${esc(p.descripcion || '')}</p>
-   <div class="facts"><div><small>Línea</small><b>${esc(C.lineas[p.linea] || p.linea)}</b></div><div><small>Pedido mínimo</small><b>${p.minimo} uds.</b></div><div><small>Personalización sugerida</small><b>${esc(persLabel(p.personalizacion_por_defecto))}</b></div><div><small>Entrega estimada (${p.minimo} uds.)</small><b id="detailEta">Calculando…</b></div></div>
+   <div class="facts"><div><small>Línea</small><b>${esc(C.lineas[p.linea] || p.linea)}</b></div><div><small>Pedido mínimo</small><b>${p.minimo} uds.</b></div><div><small>Precio estimado</small><b>${money(productUnitPrice(p))}/ud.</b></div><div><small>Entrega estimada (${p.minimo} uds.)</small><b id="detailEta">Calculando…</b></div></div>
    <small class="muted">Personalizaciones disponibles</small><div class="tags">${p.personalizaciones.map(k => `<span>${esc(persLabel(k))}</span>`).join('')}</div>
    ${p.editor3d ? '<p class="pill-ok">✦ Diseño en 3D disponible</p>' : ''}
    <div class="detail-actions"><button class="circle-btn" type="button" data-route="catalogo" aria-label="Ver catálogo">▦</button><button class="btn btn-dark" type="button" data-choose="${p.id}">Personalizar y cotizar</button></div></div></div>`;
@@ -187,6 +189,16 @@ function renderStep0() {
   if (!$('sizes').children.length) $('sizes').innerHTML = C.tallas.map(t => `<label>${t}<input type="number" inputmode="numeric" min="0" max="100000" data-talla="${t}" aria-label="Unidades talla ${t}"/></label>`).join('');
   QA('[data-talla]').forEach(inp => { const v = quote.tallas[inp.dataset.talla]; inp.value = v ? v : '' });
   updateSizeSum();
+  const priceBox = $('productPriceBox'); if (priceBox) {
+    if (!p) { priceBox.hidden = true; }
+    else {
+      const unitPrice = productUnitPrice(p);
+      const totalPrice = unitPrice * (Number(quote.cantidad) || 0);
+      $('productPriceValue').textContent = `${money(unitPrice)} / prenda`;
+      $('productPriceNote').textContent = `Total estimado: ${money(totalPrice)} para ${Number(quote.cantidad) || 0} unidades.`;
+      priceBox.hidden = false;
+    }
+  }
   $('customer').value = quote.cliente.nombre; $('company').value = quote.cliente.empresa; $('phone').value = quote.cliente.telefono; $('email').value = quote.cliente.correo; $('notes').value = quote.notas;
   renderEstimate();
 }
@@ -334,13 +346,18 @@ function renderAside() {
   const a = $('flowAside'); if (!a) return; const p = product();
   if (!p) { a.innerHTML = '<div class="card"><h2 class="card-t">Tu prenda</h2><p class="muted small">Elige una prenda para ver aquí el resumen.</p></div>'; return }
   const prev = designReady() ? quote.threeD.previews.f : photoOf(p);
-  a.innerHTML = `<div class="card"><div class="detail-hero" style="padding:10px">${imgTag(prev, p.nombre)}</div><h2 class="card-t" style="margin-top:10px">${esc(p.nombre)}</h2><dl class="kv"><dt>Personalización</dt><dd>${esc(persLabel(quote.personalizacion))}</dd><dt>Cantidad</dt><dd>${quote.cantidad || '—'} uds.</dd><dt>Estilo</dt><dd>${STYLES[quote.estilo].name}</dd><dt>Entrega estimada</dt><dd>${estimate.state === 'ok' ? fmtDate(estimate.data.fecha_estimada) : '—'}</dd></dl></div>`;
+  const unitPrice = productUnitPrice(p);
+  const totalPrice = unitPrice * (Number(quote.cantidad) || 0);
+  a.innerHTML = `<div class="card"><div class="detail-hero" style="padding:10px">${imgTag(prev, p.nombre)}</div><h2 class="card-t" style="margin-top:10px">${esc(p.nombre)}</h2><dl class="kv"><dt>Precio base</dt><dd>${money(unitPrice)} / prenda</dd><dt>Precio total</dt><dd>${money(totalPrice)}</dd><dt>Personalización</dt><dd>${esc(persLabel(quote.personalizacion))}</dd><dt>Cantidad</dt><dd>${quote.cantidad || '—'} uds.</dd><dt>Estilo</dt><dd>${STYLES[quote.estilo].name}</dd><dt>Entrega estimada</dt><dd>${estimate.state === 'ok' ? fmtDate(estimate.data.fecha_estimada) : '—'}</dd></dl></div>`;
 }
 
 /* ---------- Paso 3: resumen, registro y WhatsApp ---------- */
 function designSpec(t) { if (!t || !t.colores) return ''; return `Diseño 3D: polo camisero, 2 botones. Tejido ${colorName(t.colores.tejido)}; cuello y puños ${colorName(t.colores.cuello)}; botones ${colorName(t.colores.botones)}. Estampado: ${t.resumenEstampado}${t.estampado && (t.estampado.logo || t.estampado.texto) ? ' · ' + t.ubicacion : ''}.` }
 function summaryRows(q, est) {
-  const p = productById(q.producto) || { nombre: q.producto }, rows = [['Prenda', p.nombre], ['Personalización', persLabel(q.personalizacion)], ['Cantidad', `${q.cantidad} uds.`], ['Tallas', tallasText(q.tallas)], ['Estilo base', STYLES[q.estilo].name]];
+  const p = productById(q.producto) || { nombre: q.producto, precioReferencia: 0 },
+        unitPrice = Number(p.precioReferencia ?? 0),
+        totalPrice = unitPrice * (Number(q.cantidad) || 0),
+        rows = [['Prenda', p.nombre], ['Precio base', `${money(unitPrice)} / prenda`], ['Personalización', persLabel(q.personalizacion)], ['Cantidad', `${q.cantidad} uds.`], ['Precio total estimado', money(totalPrice)], ['Tallas', tallasText(q.tallas)], ['Estilo base', STYLES[q.estilo].name]];
   if (q.threeD && q.threeD.colores) { rows.push(['Colores (3D)', `Tejido ${colorName(q.threeD.colores.tejido)} · cuello y puños ${colorName(q.threeD.colores.cuello)} · botones ${colorName(q.threeD.colores.botones)}`], ['Estampado', q.threeD.resumenEstampado + (q.threeD.estampado && (q.threeD.estampado.logo || q.threeD.estampado.texto) ? ' · ' + q.threeD.ubicacion : '')]) }
   if (q.no3D) rows.push(['Diseño 3D', 'No disponible: el equipo de diseño preparará la propuesta']);
   if (q.revision) rows.push(['Revisión del diseñador', `${q.revision.id} · ${q.revision.motivo}`]);
@@ -442,7 +459,7 @@ function orderReport(o, etapa) {
   const prev = o.intranet && o.intranet.disenoSubido ? `ficha del diseño adjunta a la cotización en el sistema de Corpotex${o.intranet.archivo ? ` (${o.intranet.archivo})` : ''}` : '';
   return ['*REPORTE DE SOLICITUD — CORPOTEX*', `Código de solicitud: ${o.id}`, `Fecha de registro: ${fmtDateTime(o.createdAt)}`,
     ...reportBlock('DATOS DEL CLIENTE', [['Nombre', o.cliente.nombre], ['Empresa u organización', o.cliente.empresa], ['Teléfono', o.cliente.telefono], ['Correo', o.cliente.correo]]),
-    ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', it.nombre], ['Personalización', persLabel(it.personalizacion)], ['Estilo', STYLES[o.estilo] && STYLES[o.estilo].name], ['Cantidad', `${it.cantidad} uds.${tallasText(it.tallas) ? ` (${tallasText(it.tallas)})` : ''}`], ['Fecha estimada de entrega', est]]),
+    ...reportBlock('DETALLES DEL PEDIDO', [['Tipo de prenda', it.nombre], ['Precio base estimado', `${money(productUnitPrice(productById(o.item.producto) || { precioReferencia: 0 }))} / prenda`], ['Personalización', persLabel(it.personalizacion)], ['Estilo', STYLES[o.estilo] && STYLES[o.estilo].name], ['Cantidad', `${it.cantidad} uds.${tallasText(it.tallas) ? ` (${tallasText(it.tallas)})` : ''}`], ['Precio total estimado', money((productUnitPrice(productById(o.item.producto) || { precioReferencia: 0 }) || 0) * (Number(it.cantidad) || 0))], ['Fecha estimada de entrega', est]]),
     ...reportBlock('DISEÑO PERSONALIZADO', [['Diseño 3D', t && 'polo camisero con 2 botones'], ['Colores', t && `tejido ${colorName(t.colores.tejido)}; cuello y puños ${colorName(t.colores.cuello)}; botones ${colorName(t.colores.botones)}`], ['Estampados', t && t.resumenEstampado + (e && (e.logo || e.texto) ? ` · ${t.ubicacion}` : '')], ['Diseño', o.no3D && 'el editor 3D no estuvo disponible; el equipo de diseño preparará la propuesta'], ['Revisión del diseñador', o.revision && `${o.revision.id} · ${o.revision.motivo} · ${o.revision.estado}`], ['Observaciones', o.notasCliente], ['Vista previa', prev]]),
     '', '*ESTADO*', '• Solicitud registrada correctamente en el sistema de Corpotex.', `• Estado actual: ${etapa ? stageName(etapa) + '.' : ORDER_STATE_TXT}`].join('\n');
 }

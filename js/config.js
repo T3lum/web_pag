@@ -14,17 +14,17 @@ window.CORPOTEX_CONFIG = {
   // Solo se muestran en la web los productos que tienen foto aquí. Las fotos salen del catálogo empresarial 2026 de
   // Corpotex (assets/catalogo/), sin marca de agua.
   catalogo: {
-    'polo-camisero':       { fotos: ['catalogo/polo-camisero.jpg', 'catalogo/polo-camisero-combinado.jpg'], descripcion: 'Polo con cuello camisero y 2 botones para equipos de trabajo.', editor3d: true },
-    'polo-cuello-redondo': { fotos: ['catalogo/polo-algodon.jpg'], descripcion: 'Polo básico de cuello redondo para uso diario.' },
-    'polo-sublimado':      { fotos: ['catalogo/polo-deportivo.jpg'], descripcion: 'Polo con sublimación a todo color.' },
-    'camisa-corporativa':  { fotos: ['catalogo/camisa-oxford.jpg'], descripcion: 'Camisa para personal administrativo y comercial.' },
-    'pantalon-industrial': { fotos: ['catalogo/pantalon-drill.jpg'], descripcion: 'Pantalón drill de trabajo.' },
-    'chaleco-industrial':  { fotos: ['catalogo/chaleco-drill.jpg'], descripcion: 'Chaleco drill con bolsillos.' },
-    'casaca-corporativa':  { fotos: ['catalogo/casaca-impermeable.jpg'], descripcion: 'Casaca de trabajo, impermeable o térmica.' },
-    'mameluco':            { fotos: ['catalogo/mameluco.jpg'], descripcion: 'Uniforme enterizo para trabajo industrial.' },
-    'uniforme-medico':     { fotos: ['catalogo/bata-quirurgica.jpg'], descripcion: 'Ropa para personal de salud.' },
-    'chaqueta-chef':       { fotos: ['catalogo/chaqueta-chef.jpg'], descripcion: 'Chaqueta de cocina con botones.' },
-    'mandil':              { fotos: ['catalogo/mandil.jpg'], descripcion: 'Mandil con bolsillo para cocina y atención.' }
+    'polo-camisero':       { fotos: ['catalogo/polo-camisero.jpg', 'catalogo/polo-camisero-combinado.jpg'], descripcion: 'Polo con cuello camisero y 2 botones para equipos de trabajo.', editor3d: true, precioReferencia: 48 },
+    'polo-cuello-redondo': { fotos: ['catalogo/polo-algodon.jpg'], descripcion: 'Polo básico de cuello redondo para uso diario.', precioReferencia: 42 },
+    'polo-sublimado':      { fotos: ['catalogo/polo-deportivo.jpg'], descripcion: 'Polo con sublimación a todo color.', precioReferencia: 46 },
+    'camisa-corporativa':  { fotos: ['catalogo/camisa-oxford.jpg'], descripcion: 'Camisa para personal administrativo y comercial.', precioReferencia: 54 },
+    'pantalon-industrial': { fotos: ['catalogo/pantalon-drill.jpg'], descripcion: 'Pantalón drill de trabajo.', precioReferencia: 58 },
+    'chaleco-industrial':  { fotos: ['catalogo/chaleco-drill.jpg'], descripcion: 'Chaleco drill con bolsillos.', precioReferencia: 52 },
+    'casaca-corporativa':  { fotos: ['catalogo/casaca-impermeable.jpg'], descripcion: 'Casaca de trabajo, impermeable o térmica.', precioReferencia: 78 },
+    'mameluco':            { fotos: ['catalogo/mameluco.jpg'], descripcion: 'Uniforme enterizo para trabajo industrial.', precioReferencia: 86 },
+    'uniforme-medico':     { fotos: ['catalogo/bata-quirurgica.jpg'], descripcion: 'Ropa para personal de salud.', precioReferencia: 64 },
+    'chaqueta-chef':       { fotos: ['catalogo/chaqueta-chef.jpg'], descripcion: 'Chaqueta de cocina con botones.', precioReferencia: 92 },
+    'mandil':              { fotos: ['catalogo/mandil.jpg'], descripcion: 'Mandil con bolsillo para cocina y atención.', precioReferencia: 36 }
   },
   // Calendario de entregas: días de la semana en que se puede pedir la entrega (0 = domingo … 6 = sábado).
   // La planta y los locales atienden de lunes a sábado (PARA-EQUIPO-WEB.md, secciones 3 y 12).
