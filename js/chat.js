@@ -11,6 +11,8 @@ const Chat = (() => {
   const EJEMPLO = 'Necesito 300 polos camiseros bordados para mi empresa';
   // Zonas donde puede ir el logo: las mismas que ofrece el editor 3D.
   const ZONAS = ['Pecho izquierdo', 'Pecho derecho', 'Centro del pecho', 'Manga', 'Espalda'];
+  const POS_3D = { 'Pecho izquierdo': 'pecho', 'Pecho derecho': 'derecho', 'Centro del pecho': 'centro', 'Manga': 'mangaIzq', 'Espalda': 'espalda' };
+  const tiene3D = () => !!(C.catalogo[draft.producto] || {}).editor3d;
   const llevaLogo = () => ['bordado', 'dtf', 'bordado_dtf'].includes(draft.personalizacion);
   const blank = () => ({ qid: 'chat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), producto: null, cantidad: null, personalizacion: null, tallas: {}, color: '', ubicacion: '', nombre: '', empresa: '', telefono: '', notas: '' });
   let productos = [], draft = blank(), history = [], busy = false, est = null, estFor = '', registrado = null, logo = null, resumenEl = null, zonaEl = null;
@@ -47,7 +49,7 @@ CAMBIOS DESPUÉS DE REGISTRAR
 
 DATOS QUE NECESITAS
 1. Prenda (usa el id de la lista). 2. Cantidad (respeta el mínimo). 3. Personalización (una de las permitidas para esa prenda). 4. Tallas: ${C.tallas.join(', ')}; deben sumar exactamente la cantidad. Si el cliente no sabe, propón una distribución razonable y pídele que la confirme. 5. Nombre de contacto y teléfono. Empresa y color son opcionales.
-- El polo camisero tiene editor 3D: si el cliente quiere ver su diseño, dile que use el botón «Diseñar en 3D».
+- El polo camisero tiene editor 3D. Cuando ya tengas sus datos, invítalo a pulsar «Ver mi polo en 3D»: verá el polo con su logo en la zona elegida y podrá cambiar colores. Las imágenes de ese modelo son las que reciben ventas y la planta.
 - Si la prenda lleva bordado o DTF, pídele que adjunte su logo con el botón «+» y pregúntale en qué zona lo quiere. Ofrece estas opciones: ${ZONAS.join(', ')}. Guarda la elegida en «ubicacion». También puede tocar una de las opciones que aparecen en pantalla.
 - Cuando no falte nada, resume y dile que revise la tarjeta y pulse «Registrar solicitud».
 
@@ -149,7 +151,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     if (resumenEl) { resumenEl.remove(); resumenEl = null }
     if (registrado) return;
     const p = prod(draft.producto), ok = !faltantes().length && est;
-    if (p && (C.catalogo[p.id] || {}).editor3d && !ok) { resumenEl = card(`<span>El ${esc(p.nombre.toLowerCase())} se puede diseñar en 3D con tus colores y tu logo.</span><div class="acts"><button type="button" class="btn btn-light btn-sm" data-chat="3d">Diseñar en 3D</button></div>`); return }
+    if (p && (C.catalogo[p.id] || {}).editor3d && !ok) { resumenEl = card(`<span>El ${esc(p.nombre.toLowerCase())} se puede diseñar en 3D con tus colores y tu logo.</span><div class="acts"><button type="button" class="btn btn-light btn-sm" data-chat="3d">Ver mi polo en 3D</button></div>`); return }
     if (!ok) return;
     const u = precio(p.id);
     resumenEl = card(`<b>Revisa tu solicitud</b>
@@ -158,7 +160,8 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       <span>Contacto: ${esc(draft.nombre)}${draft.empresa ? ' · ' + esc(draft.empresa) : ''} · ${esc(draft.telefono)}</span>
       <span>Entrega estimada: <b>${esc(fmtDate(est.fecha_estimada))}</b>${u ? ` · Total estimado: <b>${money(u * draft.cantidad)}</b>` : ''}</span>
       ${draft.ubicacion ? `<span>Logo en: ${esc(draft.ubicacion)}${logo ? ` · ${esc(logo.name)}` : ' · sin archivo adjunto'}</span>` : logo ? `<span>Logo adjunto: ${esc(logo.name)}</span>` : ''}
-      <div class="acts"><button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>${(C.catalogo[p.id] || {}).editor3d ? '<button type="button" class="btn btn-light btn-sm" data-chat="3d">Diseñar en 3D</button>' : ''}</div>`, 'sum');
+      ${tiene3D() ? '<span>Mira tu polo en 3D con el logo en su zona: esas imágenes son las que reciben ventas y la planta.</span>' : ''}
+      <div class="acts">${tiene3D() ? '<button type="button" class="btn btn-dark btn-sm" data-chat="3d">Ver mi polo en 3D</button><button type="button" class="btn btn-light btn-sm" data-chat="registrar">Registrar sin 3D</button>' : '<button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>'}</div>`, 'sum');
   }
 
   // Reporte para WhatsApp de ventas, con el mismo formato que el del formulario.
@@ -172,8 +175,8 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
 
   async function registrar(btn) {
     if (busy || registrado || faltantes().length) return;
-    busy = true; btn.disabled = true; btn.textContent = 'Verificando la fecha…';
-    const fail = m => { busy = false; btn.disabled = false; btn.textContent = 'Registrar solicitud'; card(`<b>No se registró</b><span>${esc(m)}</span>`, 'err') };
+    const rotulo = btn.textContent; busy = true; btn.disabled = true; btn.textContent = 'Verificando la fecha…';
+    const fail = m => { busy = false; btn.disabled = false; btn.textContent = rotulo; card(`<b>No se registró</b><span>${esc(m)}</span>`, 'err') };
     try { est = await Intranet.estimar(itemEst()); estFor = JSON.stringify(itemEst()) } catch (e) { return fail('No pude verificar la fecha con la planta. ' + e.message) }
     const p = prod(draft.producto), u = precio(p.id), cliente = { nombre: draft.nombre, telefono: draft.telefono }; if (draft.empresa) cliente.empresa = draft.empresa;
     const item = { producto: p.id, cantidad: draft.cantidad, personalizacion: draft.personalizacion, tallas: { ...draft.tallas }, notas: ['Solicitud hecha con el asistente de la web.', draft.ubicacion && `Logo en: ${draft.ubicacion}.`, draft.notas].filter(Boolean).join(' ') }; if (draft.color) item.color = draft.color;
@@ -190,12 +193,20 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     history.push({ role: 'user', parts: [{ text: `[Sistema] La solicitud quedó registrada con el código ${res.codigo}.` }] });
   }
 
-  // Pasa lo conversado al formulario para seguir con el editor 3D (flujo A).
-  function abrir3D() {
+  // Pasa lo conversado al formulario y abre el editor 3D con el logo ya puesto en la zona elegida (flujo A).
+  // Al registrar desde ahí, la web sube las vistas del modelo: son las imágenes que ven ventas y cada área.
+  async function abrir3D() {
     const p = productById(draft.producto); if (!p) return toast('Esa prenda no está en el formulario de la web.');
-    if (savedId) resetNewQuote();
-    quote = { ...blankQuote(), producto: p.id, personalizacion: draft.personalizacion || p.personalizacion_por_defecto, cantidad: draft.cantidad || p.minimo, tallas: { ...draft.tallas }, color: draft.color, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, notas: draft.notas };
-    quoteStarted = true; toggleAssistant(false); nav('cotizar/pedido');
+    await resetNewQuote();
+    quote = { ...blankQuote(), qid: draft.qid, origen: 'chatbot', producto: p.id, personalizacion: draft.personalizacion || p.personalizacion_por_defecto, cantidad: draft.cantidad || p.minimo, tallas: { ...draft.tallas }, color: draft.color, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, notas: ['Solicitud iniciada con el asistente.', draft.notas].filter(Boolean).join(' ') };
+    quoteStarted = true;
+    if (est) estimate = { state: 'ok', key: estKey(), data: est, error: '', at: Date.now() };
+    const hex = Object.keys(COLOR_NAMES).find(k => COLOR_NAMES[k].toLowerCase() === draft.color.toLowerCase()) || '#ffffff';
+    try { await Designer.useContext('pedido', { colores: { tejido: hex, cuello: hex, botones: hex }, posKey: POS_3D[draft.ubicacion] || 'pecho', estampado: { logoNombre: logo ? logo.name : '' } }, logo) } catch (e) { console.warn('No se pudo preparar el editor 3D', e) }
+    toggleAssistant(false);
+    // Si falta algún dato del pedido, la propia página lleva al paso donde se completa.
+    nav(p.editor3d ? 'cotizar/diseno/3d/colores' : 'cotizar/pedido');
+    if (logo || draft.ubicacion) toast(`Tu polo se abre con ${logo ? 'tu logo' : 'la zona elegida'}${draft.ubicacion ? ' en ' + draft.ubicacion.toLowerCase() : ''}. Al terminar, pulsa «Registrar solicitud».`);
   }
 
   async function enviar(texto) {

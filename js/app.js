@@ -390,7 +390,7 @@ function buildPayload(q, est) {
   const item = { producto: p.id, cantidad: Number(q.cantidad), personalizacion: q.personalizacion, tallas, notas: buildNotes(q) }; if (color) item.color = color;
   // El precio de la lista oficial (config.js) viaja con la cotización: es lo que ve ventas al confirmar.
   // La clave contra duplicados evita dos cotizaciones si la persona reintenta tras un corte de conexión.
-  const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada, origen: 'web', marca: 'CORPOTEX', clave_idempotencia: q.qid };
+  const payload = { cliente, items: [item], fecha_estimada: est.fecha_estimada, origen: q.origen === 'chatbot' ? 'chatbot' : 'web', marca: 'CORPOTEX', clave_idempotencia: q.qid };
   const total = productUnitPrice(p) * Number(q.cantidad); if (total > 0) payload.precio_total = Math.round(total * 100) / 100;
   if (q.fechaDeseada) payload.fecha_deseada = q.fechaDeseada;
   return payload;
