@@ -49,7 +49,7 @@ CAMBIOS DESPUÉS DE REGISTRAR
 
 DATOS QUE NECESITAS
 1. Prenda (usa el id de la lista). 2. Cantidad (respeta el mínimo). 3. Personalización (una de las permitidas para esa prenda). 4. Tallas: ${C.tallas.join(', ')}; deben sumar exactamente la cantidad. Si el cliente no sabe, propón una distribución razonable y pídele que la confirme. 5. Nombre de contacto y teléfono. Empresa y color son opcionales.
-- El polo camisero tiene editor 3D. Cuando ya tengas sus datos, invítalo a pulsar «Ver mi polo en 3D»: verá el polo con su logo en la zona elegida y podrá cambiar colores. Las imágenes de ese modelo son las que reciben ventas y la planta.
+- El polo camisero tiene editor 3D. Al pulsar «Registrar solicitud» se generan solas las imágenes 3D del polo con su logo en la zona elegida; son las que reciben ventas y la planta. Si quiere cambiar colores o mover el logo antes, puede pulsar «Ver y ajustar en 3D».
 - Si la prenda lleva bordado o DTF, pídele que adjunte su logo con el botón «+» y pregúntale en qué zona lo quiere. Ofrece estas opciones: ${ZONAS.join(', ')}. Guarda la elegida en «ubicacion». También puede tocar una de las opciones que aparecen en pantalla.
 - Cuando no falte nada, resume y dile que revise la tarjeta y pulse «Registrar solicitud».
 
@@ -158,7 +158,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
   // Después de tocar una opción, el asistente dice de inmediato qué falta para terminar el pedido.
   function decirFalta(hecho) {
     const f = faltantes();
-    const texto = f.length ? `Anotado: ${hecho}. Para terminar tu pedido me falta: ${enLista(f)}.` : `Anotado: ${hecho}. Ya tengo todo: revisa la tarjeta y ${tiene3D() ? 'pulsa «Ver mi polo en 3D» o «Registrar sin 3D»' : 'pulsa «Registrar solicitud»'}.`;
+    const texto = f.length ? `Anotado: ${hecho}. Para terminar tu pedido me falta: ${enLista(f)}.` : `Anotado: ${hecho}. Ya tengo todo: revisa la tarjeta y pulsa «Registrar solicitud».`;
     addMsg(texto); history.push({ role: 'model', parts: [{ text: JSON.stringify({ respuesta: texto }) }] });
   }
   async function elegirZona(z) {
@@ -182,8 +182,8 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       <span>Contacto: ${esc(draft.nombre)}${draft.empresa ? ' · ' + esc(draft.empresa) : ''} · ${esc(draft.telefono)}</span>
       <span>Entrega estimada: <b>${esc(fmtDate(est.fecha_estimada))}</b>${u ? ` · Total estimado: <b>${money(u * draft.cantidad)}</b>` : ''}</span>
       ${draft.ubicacion ? `<span>Logo en: ${esc(draft.ubicacion)}${logo ? ` · ${esc(logo.name)}` : ' · sin archivo adjunto'}</span>` : logo ? `<span>Logo adjunto: ${esc(logo.name)}</span>` : ''}
-      ${tiene3D() ? '<span>Mira tu polo en 3D con el logo en su zona: esas imágenes son las que reciben ventas y la planta.</span>' : ''}
-      <div class="acts">${tiene3D() ? '<button type="button" class="btn btn-dark btn-sm" data-chat="3d">Ver mi polo en 3D</button><button type="button" class="btn btn-light btn-sm" data-chat="registrar">Registrar sin 3D</button>' : '<button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>'}</div>`, 'sum');
+      ${tiene3D() ? '<span>Al registrar se generan las imágenes 3D de tu polo, con el logo en su zona: son las que reciben ventas y la planta.</span>' : ''}
+      <div class="acts">${tiene3D() ? '<button type="button" class="btn btn-dark btn-sm" data-chat="registrar3d">Registrar solicitud</button><button type="button" class="btn btn-light btn-sm" data-chat="3d">Ver y ajustar en 3D</button><button type="button" class="btn btn-light btn-sm" data-chat="registrar">Registrar con dibujo simple</button>' : '<button type="button" class="btn btn-dark btn-sm" data-chat="registrar">Registrar solicitud</button>'}</div>`, 'sum');
   }
 
   /* ---------- Maqueta del modelo cuando no se pasa por el editor 3D ----------
@@ -270,20 +270,44 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     history.push({ role: 'user', parts: [{ text: `[Sistema] La solicitud quedó registrada con el código ${res.codigo}.` }] });
   }
 
-  // Pasa lo conversado al formulario y abre el editor 3D con el logo ya puesto en la zona elegida (flujo A).
+  // Pasa lo conversado al formulario y deja el editor 3D con el color, el logo y la zona elegidos (flujo A).
   // Al registrar desde ahí, la web sube las vistas del modelo: son las imágenes que ven ventas y cada área.
-  async function abrir3D() {
-    const p = productById(draft.producto); if (!p) return toast('Esa prenda no está en el formulario de la web.');
+  async function preparar3D() {
+    const p = productById(draft.producto); if (!p) { toast('Esa prenda no está en el formulario de la web.'); return null }
     await resetNewQuote();
-    quote = { ...blankQuote(), qid: draft.qid, origen: 'chatbot', producto: p.id, personalizacion: draft.personalizacion || p.personalizacion_por_defecto, cantidad: draft.cantidad || p.minimo, tallas: { ...draft.tallas }, color: draft.color, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, notas: ['Solicitud iniciada con el asistente.', draft.notas].filter(Boolean).join(' ') };
+    quote = { ...blankQuote(), qid: draft.qid, origen: 'chatbot', producto: p.id, personalizacion: draft.personalizacion || p.personalizacion_por_defecto, cantidad: draft.cantidad || p.minimo, tallas: { ...draft.tallas }, color: draft.color, cliente: { nombre: draft.nombre, empresa: draft.empresa, telefono: draft.telefono, correo: '' }, notas: ['Solicitud iniciada con el asistente.', draft.ubicacion && `Logo en: ${draft.ubicacion}.`, draft.notas].filter(Boolean).join(' ') };
     quoteStarted = true;
     if (est) estimate = { state: 'ok', key: estKey(), data: est, error: '', at: Date.now() };
-    const hex = Object.keys(COLOR_NAMES).find(k => COLOR_NAMES[k].toLowerCase() === draft.color.toLowerCase()) || '#ffffff';
+    const hex = hexDe(draft.color);
     try { await Designer.useContext('pedido', { colores: { tejido: hex, cuello: hex, botones: hex }, posKey: POS_3D[draft.ubicacion] || 'pecho', estampado: { logoNombre: logo ? logo.name : '' } }, logo) } catch (e) { console.warn('No se pudo preparar el editor 3D', e) }
+    return p;
+  }
+  async function abrir3D() {
+    const p = await preparar3D(); if (!p) return;
     toggleAssistant(false);
     // Si falta algún dato del pedido, la propia página lleva al paso donde se completa.
     nav(p.editor3d ? 'cotizar/diseno/3d/colores' : 'cotizar/pedido');
     if (logo || draft.ubicacion) toast(`Tu polo se abre con ${logo ? 'tu logo' : 'la zona elegida'}${draft.ubicacion ? ' en ' + draft.ubicacion.toLowerCase() : ''}. Al terminar, pulsa «Registrar solicitud».`);
+  }
+  const hasta = async (listo, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (listo()) return true; await new Promise(res => setTimeout(res, 700)) } return false };
+  // Registra con las imágenes 3D reales sin que la persona recorra el editor: lo abre en la vista previa, espera a
+  // que el visor genere las vistas, acepta el diseño y registra. Es el mismo camino del formulario, hecho solo.
+  async function registrar3D(btn) {
+    if (busy || registrado || faltantes().length) return;
+    busy = true; btn.disabled = true; btn.textContent = 'Preparando tu polo…';
+    const soltar = aviso => { busy = false; if (aviso) toast(aviso) };
+    const p = await preparar3D(); if (!p) { btn.disabled = false; btn.textContent = 'Registrar solicitud'; return soltar() }
+    toggleAssistant(false); nav('cotizar/diseno/3d/vista-previa');
+    if (currentRoute.view !== 'editor') return soltar('Falta completar un dato del pedido. Revísalo aquí y pulsa «Continuar».');
+    toast('Estoy generando las imágenes de tu polo en 3D. Mantén esta pestaña a la vista; tarda unos segundos.');
+    if (!(await hasta(() => currentRoute.view !== 'editor' || Designer.viewsReady(), 150000)) || currentRoute.view !== 'editor') return soltar('No pude generar las imágenes solo. Pulsa «Usar este diseño» y después «Registrar solicitud».');
+    $('d3Next').click();
+    if (!(await hasta(() => currentRoute.view === 'cotizar' && currentRoute.step === 2 && designReady(), 30000))) return soltar('Tu diseño está listo. Pulsa «Usar este diseño» y después «Registrar solicitud».');
+    await saveQuote(); busy = false;
+    if (!savedId) return;
+    registrado = savedId; if (resumenEl) { resumenEl.remove(); resumenEl = null }
+    card(`<b>Solicitud registrada</b><span class="big">${esc(savedId)}</span><span>Se registró con las imágenes 3D de tu polo. Envía el reporte a ventas con el botón de WhatsApp que ves en la página.</span><div class="acts"><button type="button" class="btn btn-light btn-sm" data-chat="ver" data-code="${esc(savedId)}">Ver mi solicitud</button><button type="button" class="btn btn-light btn-sm" data-chat="nueva">Nueva solicitud</button></div>`, 'ok');
+    history.push({ role: 'user', parts: [{ text: `[Sistema] La solicitud quedó registrada con el código ${savedId}.` }] });
   }
 
   async function enviar(texto) {
@@ -332,7 +356,7 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
     f.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; enviar(t) };
     box().addEventListener('click', e => {
       const b = e.target.closest('[data-chat]'); if (!b) return; const a = b.dataset.chat;
-      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === 'zona') elegirZona(b.dataset.zona); else if (a === 'tecnica') elegirTecnica(b.dataset.pers); else if (a === '3d') abrir3D();
+      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === 'registrar3d') registrar3D(b); else if (a === 'zona') elegirZona(b.dataset.zona); else if (a === 'tecnica') elegirTecnica(b.dataset.pers); else if (a === '3d') abrir3D();
       else if (a === 'ver') { toggleAssistant(false); nav('solicitudes/' + b.dataset.code) } else if (a === 'nueva') nueva();
     });
     box().innerHTML = ''; saludo();
