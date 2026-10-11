@@ -15,7 +15,7 @@ const Chat = (() => {
   const tiene3D = () => !!(C.catalogo[draft.producto] || {}).editor3d;
   const llevaLogo = () => ['bordado', 'dtf', 'bordado_dtf'].includes(draft.personalizacion);
   const blank = () => ({ qid: 'chat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), producto: null, cantidad: null, personalizacion: null, tallas: {}, color: '', ubicacion: '', nombre: '', empresa: '', telefono: '', notas: '' });
-  let productos = [], draft = blank(), history = [], busy = false, est = null, estFor = '', registrado = null, logo = null, resumenEl = null, zonaEl = null;
+  let productos = [], draft = blank(), history = [], busy = false, est = null, estFor = '', registrado = null, logo = null, resumenEl = null, zonaEl = null, tecnicaEl = null;
 
   const box = () => $('assistantMessages');
   const prod = id => productos.find(p => p.id === id) || null;
@@ -140,13 +140,35 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       card(`<b>Entrega estimada por la planta</b><span class="big">${esc(fmtDate(est.fecha_estimada, true))}</span><span>${est.dias_habiles} días hábiles, según la carga real de hoy. Ventas confirma la fecha en firme.</span>${u ? `<span>Precio estimado: <b>${money(u * draft.cantidad)}</b> (${money(u)} por prenda)</span>` : '<span>Precio: lo confirma ventas.</span>'}`, 'est');
     } catch (e) { est = null; estFor = ''; card(`<b>No pude consultar la planta</b><span>${esc(e.message)} No te doy una fecha sin verificarla.</span>`, 'err') }
   }
-  // Opciones para elegir dónde va el logo: se muestran cuando la prenda lo lleva y todavía no se eligió.
-  function zonas() {
+  // Opciones para elegir dónde va el logo. Se muestran cuando la prenda lo lleva y falta elegir, y siempre que se
+  // adjunta un logo (aunque ya hubiera una zona: con un logo nuevo se vuelve a preguntar).
+  function zonas(siempre) {
     if (zonaEl) { zonaEl.remove(); zonaEl = null }
-    if (registrado || !prod(draft.producto) || !llevaLogo() || draft.ubicacion) return;
-    zonaEl = card(`<b>¿En qué zona quieres el logo?</b><div class="acts">${ZONAS.map(z => `<button type="button" class="btn btn-light btn-sm" data-chat="zona" data-zona="${esc(z)}">${esc(z)}</button>`).join('')}</div><span>${logo ? `Logo adjunto: ${esc(logo.name)}` : 'Adjunta tu logo con el botón «+».'}</span>`);
+    if (registrado || !(siempre || (prod(draft.producto) && llevaLogo() && !draft.ubicacion))) return;
+    zonaEl = card(`<b>¿En qué zona quieres el logo?</b><div class="acts">${ZONAS.map(z => `<button type="button" class="btn ${draft.ubicacion === z ? 'btn-dark' : 'btn-light'} btn-sm" data-chat="zona" data-zona="${esc(z)}">${esc(z)}</button>`).join('')}</div><span>${logo ? `Logo adjunto: ${esc(logo.name)}` : 'Adjunta tu logo con el botón «+».'}</span>`);
   }
-  function elegirZona(z) { draft.ubicacion = z; addMsg(z, true); history.push({ role: 'user', parts: [{ text: `Quiero el logo en: ${z}.` }] }); zonas(); resumen(); if (!faltantes().length) addMsg('Listo. Revisa la tarjeta y pulsa «Registrar solicitud».') }
+  // Con qué técnica se aplica el logo: se pregunta si hay logo y la prenda todavía no tiene una personalización que lo lleve.
+  function tecnicas() {
+    if (tecnicaEl) { tecnicaEl.remove(); tecnicaEl = null }
+    const p = prod(draft.producto); if (registrado || !p || !logo || llevaLogo()) return;
+    const ops = p.personalizaciones.filter(x => ['bordado', 'dtf', 'bordado_dtf'].includes(x)); if (!ops.length) return;
+    tecnicaEl = card(`<b>¿Cómo quieres aplicar el logo?</b><div class="acts">${ops.map(x => `<button type="button" class="btn btn-light btn-sm" data-chat="tecnica" data-pers="${x}">${esc(persLabel(x))}</button>`).join('')}</div>`);
+  }
+  const enLista = l => l.length > 1 ? `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}` : l[0];
+  // Después de tocar una opción, el asistente dice de inmediato qué falta para terminar el pedido.
+  function decirFalta(hecho) {
+    const f = faltantes();
+    const texto = f.length ? `Anotado: ${hecho}. Para terminar tu pedido me falta: ${enLista(f)}.` : `Anotado: ${hecho}. Ya tengo todo: revisa la tarjeta y ${tiene3D() ? 'pulsa «Ver mi polo en 3D» o «Registrar sin 3D»' : 'pulsa «Registrar solicitud»'}.`;
+    addMsg(texto); history.push({ role: 'model', parts: [{ text: JSON.stringify({ respuesta: texto }) }] });
+  }
+  async function elegirZona(z) {
+    draft.ubicacion = z; addMsg(z, true); history.push({ role: 'user', parts: [{ text: `Quiero el logo en: ${z}.` }] });
+    zonas(); tecnicas(); resumen(); decirFalta(`logo en ${z.toLowerCase()}`);
+  }
+  async function elegirTecnica(x) {
+    draft.personalizacion = x; addMsg(persLabel(x), true); history.push({ role: 'user', parts: [{ text: `Personalización: ${persLabel(x)}.` }] });
+    tecnicas(); await refreshEstimate(); zonas(); resumen(); decirFalta(persLabel(x).toLowerCase());
+  }
   function resumen() {
     if (resumenEl) { resumenEl.remove(); resumenEl = null }
     if (registrado) return;
@@ -220,16 +242,18 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       const { out, text } = await gemini(); espera.remove();
       history.push({ role: 'model', parts: [{ text }] });
       // Lo leído directo del mensaje manda sobre lo que interprete el modelo.
+      // El modelo a veces inventa tallas sueltas: solo se aceptan las suyas si forman un reparto completo.
+      if (out.tallas && !directo.tallas && sumTallas(out.tallas) !== (Number.isInteger(out.cantidad) ? out.cantidad : draft.cantidad)) delete out.tallas;
       if (!registrado) { merge(out); merge(directo) }
       addMsg(out.respuesta);
-      if (!registrado) { await refreshEstimate(); zonas(); resumen() }
+      if (!registrado) { await refreshEstimate(); zonas(); tecnicas(); resumen() }
     } catch (e) {
       espera.remove(); history.pop();
       addMsg(`No pude responder con el asistente (${e.name === 'AbortError' ? 'tardó demasiado' : e.message}). ${answer(t)}`);
     } finally { busy = false }
   }
 
-  function nueva() { draft = blank(); history = []; est = null; estFor = ''; registrado = null; logo = null; resumenEl = null; zonaEl = null; box().innerHTML = ''; saludo() }
+  function nueva() { draft = blank(); history = []; est = null; estFor = ''; registrado = null; logo = null; resumenEl = null; zonaEl = null; tecnicaEl = null; box().innerHTML = ''; saludo() }
   function saludo() {
     const b = document.createElement('div'); b.className = 'amvp';
     b.innerHTML = `<b>MODO MVP</b> Pruébalo con: <button type="button" data-chat="ejemplo">«${esc(EJEMPLO)}»</button><span>El diseño 3D solo está en el polo camisero.</span>`;
@@ -246,12 +270,14 @@ Devuelve un JSON. «respuesta» es lo que lee el cliente. En los demás campos e
       const file = e.target.files[0]; e.target.value = ''; if (!file) return;
       if (!C.revision.formatos.includes(file.type)) return toast('El logo debe ser PNG, JPG o WEBP.');
       if (file.size > C.revision.maxMb * 1024 * 1024) return toast(`El logo no puede pesar más de ${C.revision.maxMb} MB.`);
-      logo = file; card(`<span>Logo adjunto: <b>${esc(file.name)}</b>. Se enviará a Corpotex al registrar la solicitud.</span>`); if (!registrado && history.length) { zonas(); resumen() }
+      logo = file; card(`<span>Logo adjunto: <b>${esc(file.name)}</b>. Se enviará a Corpotex al registrar la solicitud.</span>`);
+      // Con un logo nuevo se vuelve a preguntar dónde va y, si hace falta, cómo se aplica.
+      if (!registrado) { draft.ubicacion = ''; zonas(true); tecnicas(); resumen() }
     };
     f.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; enviar(t) };
     box().addEventListener('click', e => {
       const b = e.target.closest('[data-chat]'); if (!b) return; const a = b.dataset.chat;
-      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === 'zona') elegirZona(b.dataset.zona); else if (a === '3d') abrir3D();
+      if (a === 'ejemplo') enviar(EJEMPLO); else if (a === 'registrar') registrar(b); else if (a === 'zona') elegirZona(b.dataset.zona); else if (a === 'tecnica') elegirTecnica(b.dataset.pers); else if (a === '3d') abrir3D();
       else if (a === 'ver') { toggleAssistant(false); nav('solicitudes/' + b.dataset.code) } else if (a === 'nueva') nueva();
     });
     box().innerHTML = ''; saludo();
