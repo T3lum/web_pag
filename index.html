@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d2547"/>
+<meta name="description" content="Corpotex: uniformes y prendas personalizadas en Piura. Elige tu prenda, diséñala en 3D, consulta la entrega estimada y registra tu solicitud."/>
+<title>Corpotex | Uniformes y prendas personalizadas</title>
+<link rel="icon" href="assets/logo_corpotex_simbolo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&display=swap"/>
+<link rel="stylesheet" href="css/site.css?v=20261011"/>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="hdr" id="hdr"><div class="container hdr-in">
+ <a class="brand" href="#inicio" data-route="inicio" aria-label="Corpotex, ir al inicio"><img src="assets/logo_corpotex_simbolo.png" alt=""/><span><b>Corpotex</b><small>Vestimos a todas las industrias</small></span></a>
+ <nav class="topnav" id="topnav" aria-label="Principal"><button type="button" data-route="inicio">Inicio</button><button type="button" data-route="catalogo">Productos</button><button type="button" data-scroll="proceso">Cómo funciona</button><button type="button" data-scroll="servicios">Servicios</button><button type="button" data-scroll="nosotros">Nosotros</button><button type="button" data-scroll="contacto">Contacto</button><button type="button" data-route="solicitudes">Mis solicitudes</button></nav>
+ <button class="btn btn-dark hdr-cta" type="button" data-action="new-quote">Cotizar <span class="lg-only">mi prenda</span></button>
+ <button class="menu-btn" id="menuBtn" type="button" aria-controls="topnav" aria-expanded="false" aria-label="Abrir menú"><span aria-hidden="true"></span></button>
+</div></header>
+
+<main id="main">
+<!-- ===================== INICIO ===================== -->
+<section class="view active" id="view-inicio">
+ <div class="hero"><div class="container hero-in">
+  <div class="hero-copy">
+   <span class="eyebrow"><i class="dot"></i>Confección personalizada en Piura</span>
+   <h1>Uniformes y prendas <em>con tu marca</em></h1>
+   <p>Elige tu prenda, diséñala, consulta la entrega estimada y registra tu solicitud.</p>
+   <div class="hero-ctas"><button class="btn btn-gold" type="button" data-action="new-quote">Cotizar mi prenda →</button><button class="btn btn-ghost-light" type="button" data-route="catalogo">Ver productos</button></div>
+   <ul class="hero-pills"><li>Polo en 3D</li><li>Entrega estimada en línea</li><li>Revisión del diseñador</li></ul>
+  </div>
+  <figure class="hero-art"><img src="assets/catalogo/equipo-corporativo.jpg" width="1100" height="741" alt="Equipo con camisas corporativas confeccionadas por Corpotex"/><figcaption>La entrega estimada se calcula con la carga real de la planta.</figcaption></figure>
+ </div></div>
+
+ <section class="sec sec-tight" id="destacados"><div class="container">
+  <div class="sec-head row-head"><div><span class="eyebrow-d">Catálogo</span><h2>Productos destacados</h2></div><button class="link-btn" type="button" data-route="catalogo">Ver todos →</button></div>
+  <div class="strip" id="featured" aria-live="polite"></div>
+ </div></section>
+
+ <section class="sec" id="proceso"><div class="container">
+  <div class="sec-head"><span class="eyebrow-d">Una experiencia más clara</span><h2>Así trabajamos tu pedido</h2></div>
+  <ol class="steps4"><li><b>Elige tu prenda</b><span>Línea, cantidad, tallas y personalización.</span></li><li><b>Personalízala</b><span>Estilo base y, en el polo camisero, diseño en 3D.</span></li><li><b>Revisa y registra</b><span>Vista previa final y entrega estimada por la planta.</span></li><li><b>Envía tu reporte</b><span>Por WhatsApp, a ventas, que confirma precio y fecha.</span></li></ol>
+ </div></section>
+
+ <section class="sec sec-alt" id="marcas"><div class="container">
+  <div class="sec-head"><span class="eyebrow-d">Dos marcas · una empresa</span><h2>Diseñamos para cada necesidad</h2></div>
+  <div class="brands"><article class="brandcard"><img src="assets/catalogo/equipo-industrial.jpg" width="760" height="844" loading="lazy" alt="Trabajadora con chaleco industrial de alta visibilidad"/><div><span class="eyebrow-d">Industria y empresas</span><h3>Corpotex</h3><p>Uniformes industriales, corporativos y soluciones de confección para equipos de trabajo.</p><button class="link-btn" type="button" data-catalog="empresarial">Ver productos →</button></div></article>
+  <article class="brandcard"><img src="assets/catalogo/polo-espalda.jpg" width="760" height="849" loading="lazy" alt="Polo personalizado con estampado en la espalda"/><div><span class="eyebrow-d">Deporte y eventos</span><h3>UNICRACK</h3><p>Prendas deportivas y polos personalizados para equipos, clubes y eventos.</p><button class="link-btn" type="button" data-catalog="todos">Ver catálogo →</button></div></article></div>
+ </div></section>
+
+ <section class="sec" id="servicios"><div class="container">
+  <div class="sec-head"><span class="eyebrow-d">Servicios</span><h2>Confección, bordado y estampado</h2><p>Confección textil, bordado computarizado y personalización con DTF y sublimado.</p></div>
+  <div class="tiles3"><article><div class="tile"><img src="assets/catalogo/confeccion.jpg" width="1000" height="684" loading="lazy" alt="Operario de Corpotex cosiendo en máquina de confección"/></div><b>Confección</b><span>Uniformes industriales, corporativos, deportivos y especializados.</span></article><article><div class="tile"><img src="assets/catalogo/bordado-maquinas.jpg" width="1000" height="485" loading="lazy" alt="Máquinas de bordado computarizado de Corpotex"/></div><b>Bordado</b><span>Logotipos y detalles bordados en tus prendas.</span></article><article><div class="tile"><img class="fit" src="assets/catalogo/polo-rib-combinado.jpg" width="684" height="760" loading="lazy" alt="Polo combinado con estampado a color en el pecho"/></div><b>Estampado</b><span>DTF y sublimado full color para tu identidad visual.</span></article></div>
+ </div></section>
+
+ <section class="sec sec-alt" id="nosotros"><div class="container nosotros">
+  <div class="sec-head"><span class="eyebrow-d">Nosotros</span><h2>Confeccionamos para cada industria</h2><p>Corpotex fabrica uniformes y artículos textiles para empresas, instituciones y organizaciones, con la línea corporativa e industrial Corpotex y con UNICRACK para ropa deportiva.</p></div>
+  <ul class="checks"><li>Confección de calidad</li><li>Diseños personalizados</li><li>Atención en Piura y a nivel nacional</li></ul>
+ </div></section>
+
+ <section class="sec" id="clientes"><div class="container">
+  <div class="sec-head"><span class="eyebrow-d">Clientes</span><h2>Experiencia con empresas y equipos de Piura</h2></div>
+  <div class="clients"><figure class="client-photo"><img src="assets/catalogo/restaurante.jpg" width="800" height="722" loading="lazy" alt="Personal de cocina con uniforme y mandil personalizados"/><figcaption>Restaurantes y hotelería: uniformes de cocina y mandiles.</figcaption></figure><blockquote>«Su calidad, compromiso y rapidez son razones para continuar trabajando con ellos».<cite>Ricardo Paulini · La Bocca / La Barra del Chino</cite></blockquote><blockquote>«La calidad de la tela, confección y bordados es parte de los motivos para recomendarlos».<cite>Nova Peru S.A.C.</cite></blockquote></div>
+ </div></section>
+
+ <section class="sec sec-alt" id="locales"><div class="container">
+  <div class="sec-head"><span class="eyebrow-d">Ubicaciones</span><h2>Encuéntranos</h2><p>Lunes a sábado, de 9:00 a. m. a 7:00 p. m.</p></div>
+  <div class="places"><div><b>Piura Centro</b><span>Av. Sánchez Cerro 468, al costado de Olva Courier.</span></div><div><b>Piura Mercado</b><span>Av. Blas de Atienza 420, Galería Zapata.</span></div><div><b>Sechura</b><span>Calle San Martín 542, frente a la Plaza de Armas.</span></div></div>
+ </div></section>
+
+ <section class="sec" id="contacto"><div class="container contact">
+  <div class="sec-head"><span class="eyebrow-d">Contacto</span><h2>Estamos para ayudarte</h2><p>Si ya tienes una idea, inicia tu solicitud. Para información adicional, escríbenos.</p></div>
+  <div class="contact-actions"><a class="btn btn-light" href="mailto:ventas@corpotex.com.pe">✉ ventas@corpotex.com.pe</a><button class="btn btn-dark" type="button" data-action="new-quote">Iniciar mi solicitud →</button></div>
+ </div></section>
+</section>
+
+<!-- ===================== CATÁLOGO ===================== -->
+<section class="view" id="view-catalogo"><div class="container page">
+ <div class="page-head"><button class="circle-btn" type="button" data-back aria-label="Regresar">←</button><h1>Productos</h1><span class="page-head-sp"></span></div>
+ <div class="chips" id="lineChips" role="tablist" aria-label="Líneas de producto"></div>
+ <div class="notice" id="catalogNotice" hidden></div>
+ <div class="pgrid" id="catalogGrid" aria-live="polite"></div>
+</div></section>
+
+<!-- ===================== DETALLE DE PRENDA ===================== -->
+<section class="view" id="view-producto"><div class="container page page-narrow" id="productBody"></div></section>
+
+<!-- ===================== SOLICITUD DE PEDIDO ===================== -->
+<section class="view" id="view-cotizar"><div class="container page">
+ <div class="page-head"><button class="circle-btn" type="button" id="flowBack" aria-label="Paso anterior">←</button><div class="page-title"><span class="eyebrow-d">Solicitud de pedido</span><h1 id="flowTitle">Tu pedido</h1></div><span class="page-head-sp"></span></div>
+ <ol class="progress" aria-label="Progreso de la solicitud"><li id="progress0">Pedido</li><li id="progress1">Diseño</li><li id="progress2">Resumen</li></ol>
+ <div class="flow" id="quoteGrid"><div class="flow-main">
+
+ <!-- Paso 1: pedido -->
+ <div class="step-view" id="orderStep0">
+  <div class="card">
+   <h2 class="card-t">¿Qué prenda necesitas?</h2>
+   <div class="chips chips-sm" id="flowLines" role="tablist" aria-label="Línea"></div>
+   <div class="garments" id="garmentGrid" role="radiogroup" aria-label="Tipo de prenda"></div>
+   <p class="field-err" id="err-producto" hidden></p>
+  </div>
+  <div class="card">
+   <h2 class="card-t">Cantidad y personalización</h2>
+   <div class="grid2">
+    <label class="field"><span>Personalización *</span><select id="personalizacion"></select></label>
+    <label class="field"><span>Cantidad total *</span><input id="quantity" type="number" inputmode="numeric" min="1" max="100000" value="12"/><small id="minHint">Pedido mínimo: 12 unidades.</small></label>
+   </div>
+   <p class="field-err" id="err-cantidad" hidden></p>
+   <div class="field"><span>Tallas * <small class="muted" id="sizeSum">Suma: 0 de 12</small></span><div class="sizes" id="sizes"></div></div>
+   <p class="field-err" id="err-tallas" hidden></p>
+   <label class="field" id="colorField"><span>Color de la prenda (opcional)</span><input id="garmentColor" maxlength="60" placeholder="Ej. Azul marino"/></label>
+  </div>
+  <div class="card">
+   <h2 class="card-t">Tus datos de contacto</h2>
+   <div class="grid2">
+    <label class="field"><span>Nombre de contacto *</span><input id="customer" maxlength="100" autocomplete="name" placeholder="Ej. María Torres"/></label>
+    <label class="field"><span>Empresa u organización</span><input id="company" maxlength="100" autocomplete="organization" placeholder="Opcional"/></label>
+    <label class="field"><span>Teléfono *</span><input id="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="Ej. 987654321"/></label>
+    <label class="field"><span>Correo electrónico</span><input id="email" type="email" maxlength="120" autocomplete="email" placeholder="Opcional"/></label>
+   </div>
+   <p class="field-err" id="err-contacto" hidden></p>
+  </div>
+  <div class="card">
+   <h2 class="card-t">Entrega</h2>
+   <div class="estimate" id="estimateBox" aria-live="polite"></div>
+   <label class="field"><span>Fecha deseada de entrega (opcional)</span><input id="desiredDate" type="date"/><small>Debe ser igual o posterior a la entrega estimada.</small></label>
+   <p class="field-err" id="err-fecha" hidden></p>
+   <label class="field"><span>Detalles y requisitos especiales</span><textarea id="notes" maxlength="600" placeholder="Tela, uso, normas técnicas u otros requisitos."></textarea></label>
+  </div>
+  <div class="alert" id="validationMsg" role="alert" hidden></div>
+  <div class="actions"><button class="btn btn-light" type="button" data-route="catalogo">Ver catálogo</button><button class="btn btn-dark" type="button" id="toDesign">Continuar al diseño →</button></div>
+ </div>
+
+ <!-- Paso 2: diseño -->
+ <div class="step-view" id="orderStep1">
+  <div class="card"><h2 class="card-t">Elige un estilo base</h2><p class="card-d" id="designDesc"></p><div class="styles" id="styleChoices" role="radiogroup" aria-label="Estilo base"></div></div>
+  <div id="design3dEntry"></div>
+  <div class="card review" id="reviewCard">
+   <div class="review-head"><span class="ico">✎</span><div><h2 class="card-t">Solicitar revisión del diseñador</h2><p class="card-d">Para diseños que necesitan una evaluación personalizada: varios logos, franjas, sublimado completo u otros detalles que el editor no permite.</p></div></div>
+   <div id="reviewSummary"></div>
+   <button class="btn btn-light" type="button" id="reviewOpen">Solicitar revisión del diseñador</button>
+   <form class="review-form" id="reviewForm" hidden novalidate>
+    <p class="muted small" id="reviewFor"></p>
+    <label class="field"><span>Motivo *</span><select id="reviewMotivo"></select></label>
+    <label class="field"><span>Describe el diseño que necesitas *</span><textarea id="reviewDesc" maxlength="1200" placeholder="Ej. Logo bordado en el pecho, nombre de cada trabajador en la espalda y franja amarilla en las mangas."></textarea></label>
+    <label class="field"><span>Imágenes de referencia (opcional)</span><input id="reviewFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple/><small>Hasta 3 imágenes PNG, JPG o WEBP de máximo 10 MB cada una.</small></label>
+    <div class="ref-list" id="reviewList"></div>
+    <p class="field-err" id="err-review" hidden></p>
+    <div class="actions"><button class="btn btn-light" type="button" id="reviewCancel">Cancelar</button><button class="btn btn-dark" type="submit">Guardar solicitud de revisión</button></div>
+   </form>
+  </div>
+  <div class="alert" id="designMsg" role="alert" hidden></div>
+  <div class="actions"><button class="btn btn-light" type="button" data-route="cotizar/pedido">← Atrás</button><button class="btn btn-dark" type="button" id="designNext">Revisar mi solicitud →</button></div>
+ </div>
+
+ <!-- Paso 3: resumen -->
+ <div class="step-view" id="orderStep2">
+  <div class="card"><h2 class="card-t">Revisa tu solicitud</h2><div id="summaryPreview"></div><dl class="summary" id="quoteSummary"></dl></div>
+  <div class="card estimate-card"><div class="estimate" id="summaryEstimate" aria-live="polite"></div></div>
+  <div class="alert" id="saveMsg" role="alert" hidden></div>
+  <div class="success" id="savedBox" hidden role="status"></div>
+  <div class="actions" id="summaryActions"><button class="btn btn-light" type="button" data-route="cotizar/diseno">← Atrás</button><button class="btn btn-dark" type="button" id="saveOrderButton">Registrar solicitud</button></div>
+ </div>
+ </div>
+ <aside class="flow-aside" id="flowAside"></aside>
+ </div>
+</div></section>
+
+<!-- ===================== EDITOR 3D (pedido nuevo y modificaciones) ===================== -->
+<section class="view" id="view-editor"><div class="container page page-wide">
+ <div class="page-head editor-head"><button class="circle-btn" type="button" id="editorBack" aria-label="Volver">←</button><div class="page-title"><span class="eyebrow-d" id="editorEyebrow">Diseño 3D</span><h1 id="editorTitle">Diseña tu polo en 3D</h1></div><button class="chip review-chip" type="button" id="editorReview" title="Solicitar revisión del diseñador">✎ <span>Revisión del diseñador</span></button></div>
+ <div class="d3" id="d3">
+  <div class="d3-stage"><div class="d3-viewer" id="d3Viewer">
+   <iframe id="d3Frame" title="Polo en 3D" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>
+   <div class="d3-veil on" id="d3Loader"><div class="d3-spin"></div><b id="d3LoaderTxt">Cargando polo 3D…</b><div class="d3-bar"><i id="d3LoaderBar"></i></div><span id="d3LoaderSub">Modelo 3D con tejido, costuras y botones.</span><button class="btn btn-light btn-sm" id="d3Skip" hidden type="button">Continuar sin editor 3D</button></div>
+   <div class="d3-veil" id="d3Busy"><div class="d3-spin"></div><b id="d3BusyTxt">Generando vista previa…</b><span>Mantén esta pestaña visible; tarda unos segundos por vista.</span></div>
+   <div class="d3-views" role="toolbar" aria-label="Vistas del polo"><button data-v="f" class="on" type="button">Frente</button><button data-v="q" type="button">3/4</button><button data-v="l" type="button">Lateral</button><button data-v="b" type="button">Espalda</button><label><input id="d3Auto" type="checkbox"/> Girar</label></div>
+  </div></div>
+  <div class="d3-panel">
+   <nav class="d3-stepper" id="d3Stepper" aria-label="Pasos del editor 3D"></nav>
+   <div class="d3-body" id="d3Body">
+    <section class="d3-step" data-step="0"><div class="d3-kick">Paso 1 de 4</div><h3>Colores del polo</h3><p class="d3-lead">Elige el color del tejido. Cuello, puños y botones lo siguen, salvo que les pongas otro color.</p>
+     <div class="d3-sw" id="d3Sw"></div><div class="d3-cname">Tejido: <b id="d3Cname">Blanco</b></div>
+     <div class="d3-row3"><label class="d3-f">Tejido<input id="d3Color" type="color" value="#ffffff"/></label><label class="d3-f">Cuello y puños<input id="d3Trim" type="color" value="#ffffff"/></label><label class="d3-f">Botones<input id="d3Buttons" type="color" value="#ffffff"/></label></div>
+     <button class="d3-link" id="d3Sync" type="button">Igualar cuello, puños y botones al tejido</button>
+    </section>
+    <section class="d3-step" data-step="1"><div class="d3-kick">Paso 2 de 4</div><h3>Estampado</h3><p class="d3-lead">Sube tu logo en PNG y, si quieres, añade un texto debajo.</p>
+     <div class="d3-status" id="d3StampNote" hidden></div>
+     <div class="d3-card"><h4>Logo (solo PNG)</h4>
+      <label class="d3-drop" id="d3Drop"><input type="file" id="d3Logo" accept="image/png,.png" hidden/><span class="ic">↑</span><b>Subir logo PNG</b><small>Solo archivos .png · fondo transparente recomendado · máximo 8 MB</small></label>
+      <div class="d3-err" id="d3LogoErr" role="alert" hidden></div>
+      <div class="d3-logo" id="d3LogoRow" hidden><img id="d3LogoPrev" alt="Vista previa del logo"/><div><b id="d3LogoName">logo.png</b><small>Se estampa a todo color</small></div><button class="btn btn-light btn-sm" id="d3RmLogo" type="button">Quitar</button></div>
+      <label class="d3-f"><span class="d3-lbl">Tamaño del logo<span class="d3-val" id="d3LogoCm"></span></span><input id="d3LogoScale" type="range" min=".3" max="2" step=".05" value="1"/></label></div>
+     <div class="d3-card"><h4>Texto</h4><label class="d3-f">Contenido<input type="text" id="d3Text" maxlength="32" placeholder="Escribe tu marca" autocomplete="off"/></label>
+      <div class="d3-row"><label class="d3-f">Tipografía<select id="d3Font"><option value="Outfit|700">Outfit</option><option value="Arial|700">Arial</option><option value="Georgia|700">Georgia</option><option value="Impact|400">Impact</option></select></label><label class="d3-f">Color<input id="d3TextColor" type="color" value="#242b2a"/></label></div>
+      <label class="d3-f"><span class="d3-lbl">Alto de letra<span class="d3-val" id="d3TextCm"></span></span><input type="range" id="d3TextScale" min=".4" max="2.5" step=".05" value="1"/></label></div>
+    </section>
+    <section class="d3-step" data-step="2"><div class="d3-kick">Paso 3 de 4</div><h3>Ubicación del estampado</h3><p class="d3-lead">Toca un punto del polo o elige una zona. El modelo gira para mostrártela.</p>
+     <div class="d3-spots">
+      <figure class="d3-mini" data-fig="f"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="body" d="M34 7Q50 13 66 7L85 15 98 35 85 42 79 36V95Q50 99 21 95V36L15 42 2 35 15 15Z"/><path class="collar" d="M34 7 50 21 45 26 31 13ZM66 7 50 21 55 26 69 13Z"/><path class="ln" d="M47 22V41H53V22"/></svg><figcaption>Frente</figcaption></figure>
+      <figure class="d3-mini" data-fig="b"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="body" d="M34 7Q50 13 66 7L85 15 98 35 85 42 79 36V95Q50 99 21 95V36L15 42 2 35 15 15Z"/><path class="collar" d="M34 7Q50 13 66 7V11Q50 17 34 11Z"/></svg><figcaption>Espalda</figcaption></figure>
+     </div>
+     <div class="d3-chips" id="d3Chips"></div>
+     <div class="d3-card"><h4>Ajuste fino · <span class="d3-val" id="d3PosName"></span></h4>
+      <label class="d3-f"><span class="d3-lbl">Horizontal<span class="d3-val" id="d3OffXv"></span></span><input id="d3OffX" type="range" min="-12" max="12" step=".5" value="0"/></label>
+      <label class="d3-f"><span class="d3-lbl">Vertical<span class="d3-val" id="d3OffYv"></span></span><input id="d3OffY" type="range" min="-15" max="15" step=".5" value="0"/></label>
+      <button class="d3-link" id="d3Center" type="button">Volver a la posición recomendada</button></div>
+    </section>
+    <section class="d3-step" data-step="3"><div class="d3-kick">Paso 4 de 4</div><h3>Vista previa de tu polo</h3><p class="d3-lead">Así quedará tu diseño. Revísalo antes de continuar.</p>
+     <div class="d3-status" id="d3PrevStatus" role="status"></div>
+     <div class="d3-thumbs" id="d3Thumbs"></div>
+     <div class="d3-recap" id="d3Recap"></div>
+     <details class="d3-dl"><summary>Opciones de descarga</summary><div class="inner">
+      <div class="d3-row"><label class="d3-f">Fondo<select id="d3Bg"><option value="transparent">Transparente</option><option value="white">Blanco</option><option value="studio">Gris estudio</option></select></label><label class="d3-f">Resolución<select id="d3Res"><option value="1600">1600 × 2000 px</option><option value="2400">2400 × 3000 px</option></select></label></div>
+      <div class="d3-f">Lado en lateral y 3/4<div class="d3-seg" id="d3Side"><button data-side="izq" class="on" type="button">Izquierdo</button><button data-side="der" type="button">Derecho</button></div></div>
+      <div class="d3-actions"><button id="d3DlSheet" class="btn btn-light btn-sm" type="button">Descargar lámina</button><button id="d3DlZip" class="btn btn-light btn-sm" type="button">Todo en .zip</button><button id="d3ShareSheet" class="btn btn-light btn-sm wide" hidden type="button">Compartir lámina</button><button id="d3Export" class="btn btn-light btn-sm wide" type="button">Descargar vista 3D actual</button></div>
+     </div></details>
+     <p class="d3-credit">Modelo 3D: «Short Sleeve Polo Shirt for Men Mockup 02» de HQ3DMOD, mostrado con el visor de <a href="https://sketchfab.com/models/97b22f6ab3a74beb8004cddac53dee19" target="_blank" rel="noopener">Sketchfab</a>.</p>
+    </section>
+   </div>
+   <div class="d3-foot"><button class="btn btn-light" id="d3Prev" type="button">← Atrás</button><button class="btn btn-dark" id="d3Next" type="button">Siguiente</button></div>
+  </div>
+ </div>
+</div></section>
+
+<!-- ===================== MIS SOLICITUDES Y MODIFICACIONES ===================== -->
+<section class="view" id="view-solicitudes"><div class="container page page-mid" id="solBody"></div></section>
+</main>
+
+<footer class="ftr"><div class="container ftr-in"><div><b>Corpotex</b><span>Vestimos a todas las industrias · Piura, Perú</span></div><div><span>ventas@corpotex.com.pe</span><span>© 2026 Corpotex · UNICRACK</span></div></div></footer>
+
+<nav class="tabbar" id="tabbar" aria-label="Navegación">
+ <button type="button" data-route="inicio" data-tab="inicio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
+ <button type="button" data-route="catalogo" data-tab="catalogo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg><span>Productos</span></button>
+ <button type="button" data-action="new-quote" data-tab="cotizar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Cotizar</span></button>
+ <button type="button" data-route="solicitudes" data-tab="solicitudes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span>Pedidos</span></button>
+</nav>
+<button class="fab" id="assistantToggle" type="button" aria-label="Abrir asistente de ayuda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
+<div class="assistant" id="assistantModal" role="dialog" aria-label="Asistente de Corpotex"><div class="assistant-head"><div><b>Asistente Corpotex</b><small>Respuestas rápidas sobre prendas, diseño y pedidos.</small></div><button type="button" id="assistantClose" aria-label="Cerrar">×</button></div><div class="assistant-msgs" id="assistantMessages"><div class="amsg">¡Hola! Cuéntame qué prenda necesitas, cuántas unidades y para qué tipo de cliente.</div></div><form class="assistant-compose" id="assistantForm"><input id="assistantInput" maxlength="450" placeholder="Escribe tu consulta…" autocomplete="off"/><button class="btn btn-dark btn-sm" type="submit">Enviar</button></form></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/config.js?v=20261011"></script>
+<script src="js/intranet.js?v=20261011"></script>
+<script src="js/store.js?v=20261011"></script>
+<script src="js/designer.js?v=20261011"></script>
+<script src="js/app.js?v=20261011"></script>
+</body>
+</html>
